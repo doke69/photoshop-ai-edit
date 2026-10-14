@@ -1,4 +1,4 @@
-# PS 局部改图插件
+# Photoshop AI Edit — PS AI 局部改图插件
 
 ## Register
 

@@ -1,14 +1,16 @@
-# Photoshop 局部 AI 改图插件
+# Photoshop AI Edit — PS AI 局部改图插件
 
 ![局部改图产品介绍：圈出要改的地方，把结果带回图层](assets/readme/hero-v0.4.2.png)
 
 *封面为功能概念示意，非插件实际生成结果。*
 
+**圈出要改的地方，把 AI 结果带回图层。**
+
 在 Photoshop 中框选或套索选中区域，输入修改要求并添加参考图，通过 LK888 生成候选结果，再按原坐标添加为独立图层。适合局部换装、调整物品、风格参考等需要保留原画面其他区域的修改。
 
 **当前发布版：v0.4.2** · Photoshop 25.0（2024）及以上 · macOS / Windows
 
-[下载安装包](https://github.com/doke69/ps-local-edit/releases/latest) · [v0.4.2 更新说明](https://github.com/doke69/ps-local-edit/releases/tag/v0.4.2) · [当前版本源码](https://github.com/doke69/ps-local-edit/tree/v0.4.2)
+[下载安装包](https://github.com/doke69/photoshop-ai-edit/releases/latest) · [v0.4.2 更新说明](https://github.com/doke69/photoshop-ai-edit/releases/tag/v0.4.2) · [当前版本源码](https://github.com/doke69/photoshop-ai-edit/tree/v0.4.2)
 
 > 安装请下载 v0.4.2 Release。`main` 已更新为最新开发源码，并完成过时文件清理；需要与发布安装包完全对应的源码时，请使用 `v0.4.2` 标签。
 
@@ -33,9 +35,11 @@
 - 首次读取选区保留已输入的修改要求和参考图；读取完成后不再被 Photoshop 通知重新展开空状态提示。
 - 查询最多 3 个并发，批量保存查询结果；未变化的标签和结果不重复重建，使用小缩略图并及时释放 Photoshop 像素对象，减少重复解码与写入。
 
+> 项目现名 Photoshop AI Edit；源码面板名称为“AI 局部改图”。已发布 v0.4.2 安装包仍显示“局部改图”，文件名与插件 ID 保持不变。
+
 ## 安装：使用 OpenUXP
 
-1. 从 [Releases](https://github.com/doke69/ps-local-edit/releases/latest) 下载 **`ps-local-edit-LK888-0.4.2.ccx`**。自动生成的 Source code 压缩包是源码，不是直接安装包。
+1. 从 [Releases](https://github.com/doke69/photoshop-ai-edit/releases/latest) 下载 **`ps-local-edit-LK888-0.4.2.ccx`**。自动生成的 Source code 压缩包是源码，不是直接安装包。
 2. 安装 [OpenUXP Installer](https://moonvy.com/apps/upx-installer/)（第三方开源工具，提供 macOS / Windows 版，支持 UXP `.ccx`）。
 3. 保存文件并退出 Photoshop，将 CCX 拖入 OpenUXP，核对名称“局部改图”、版本和 Photoshop 宿主后安装。如官方安装方式失败，可使用工具提供的侧载方式，具体选项以所用工具版本为准。
 4. 重启 Photoshop，在“增效工具”中打开“局部改图”。
@@ -62,7 +66,7 @@
 
 **macOS**：在“系统设置 → 键盘 → 听写”中启用中文，聚焦修改要求后使用系统配置的听写快捷键。插件的“听写帮助”按钮提供说明，不会直接启用麦克风。目前没有 Mac 一键录音助手。
 
-**Windows**：语音、标注和部分剪贴板／拖入辅助功能需要单独启动助手，**CCX 不包含助手**。安装 Node.js，下载并解压 [v0.4.2 源码](https://github.com/doke69/ps-local-edit/archive/refs/tags/v0.4.2.zip)，在该项目目录运行：
+**Windows**：语音、标注和部分剪贴板／拖入辅助功能需要单独启动助手，**CCX 不包含助手**。安装 Node.js，下载并解压 [v0.4.2 源码](https://github.com/doke69/photoshop-ai-edit/archive/refs/tags/v0.4.2.zip)，在该项目目录运行：
 
 ```sh
 node scripts/voice-server.cjs
@@ -79,7 +83,7 @@ node scripts/voice-server.cjs
 
 ## 开发与验证
 
-开发可使用 [main 最新源码](https://github.com/doke69/ps-local-edit/tree/main)；已发布安装包对应 [v0.4.2 标签源码](https://github.com/doke69/ps-local-edit/tree/v0.4.2)。main 已移除旧 WebView 页面、开发电脑专用脚本及生成文件的源码跟踪；运行打包或预览脚本可重新生成 dist 文件。
+开发可使用 [main 最新源码](https://github.com/doke69/photoshop-ai-edit/tree/main)；已发布安装包对应 [v0.4.2 标签源码](https://github.com/doke69/photoshop-ai-edit/tree/v0.4.2)。main 已移除旧 WebView 页面、开发电脑专用脚本及生成文件的源码跟踪；运行打包或预览脚本可重新生成 dist 文件。
 
 ```sh
 node --test tests/*.test.cjs
@@ -92,4 +96,4 @@ v0.4.2 共 **129 项自动测试通过**，接口使用模拟响应，未调用�
 
 选区捕获、坐标变换、智能对象与蒙版模块复用 [FromPS / ToPS](https://github.com/dgl-10/PhotoshopPlugin)，保留上游来源及 **CC BY-NC-SA 4.0** 许可。本项目软件代码和附带组件限非商业使用；图像使用权依输入素材与模型平台条款确定。
 
-详见 [LICENSE](https://github.com/doke69/ps-local-edit/blob/v0.4.2/LICENSE) 与 [来源说明](https://github.com/doke69/ps-local-edit/blob/v0.4.2/plugin/NOTICE.md)。
+详见 [LICENSE](https://github.com/doke69/photoshop-ai-edit/blob/v0.4.2/LICENSE) 与 [来源说明](https://github.com/doke69/photoshop-ai-edit/blob/v0.4.2/plugin/NOTICE.md)。
