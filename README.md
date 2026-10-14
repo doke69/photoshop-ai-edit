@@ -49,9 +49,9 @@
 
 ## 实机界面与操作位置
 
-![基于实机截图的六步操作位置标注](assets/readme/interface-guide.png)
+![基于实机截图的六步操作位置标注](assets/readme/interface-guide-current.png)
 
-*基于你提供的较早版本实机截图，以 AI 辅助排版标注操作位置；细节请查看[未经修改的原始截图](assets/readme/interface-original.png)，当前布局可能略有差异。*
+*基于用户提供的最新实机截图，以 AI 辅助排版标注六步操作；界面细节请查看[未经修改的原始截图](assets/readme/interface-original-current.png)。*
 
 ## 使用流程
 
