@@ -6,7 +6,7 @@
 
 [下载安装包](https://github.com/doke69/ps-local-edit/releases/latest) · [v0.4.2 更新说明](https://github.com/doke69/ps-local-edit/releases/tag/v0.4.2) · [当前版本源码](https://github.com/doke69/ps-local-edit/tree/v0.4.2)
 
-> 当前版本的安装包与源码以 Releases 和 `v0.4.2` 标签为准。首页 `main` 分支的历史代码尚未同步到此版本；需要开发或使用 Windows 助手时，请下载对应标签的源码。
+> 安装请下载 v0.4.2 Release。`main` 已更新为最新开发源码，并完成过时文件清理；需要与发布安装包完全对应的源码时，请使用 `v0.4.2` 标签。
 
 ## 主要功能
 
@@ -54,7 +54,7 @@
 node scripts/voice-server.cjs
 ```
 
-保持终端开启，再在插件中点击语音开始／停止。中文听写需要系统中文识别引擎和麦克风权限；助手仅监听本机 `127.0.0.1:17402`。旧 `.cmd` 和自动加载脚本依赖原开发电脑的路径，不是通用安装入口。
+保持终端开启，再在插件中点击语音开始／停止。中文听写需要系统中文识别引擎和麦克风权限；助手仅监听本机 `127.0.0.1:17402`。main 中已移除依赖原开发电脑路径的旧 `.cmd` 和自动加载脚本；请使用上面的通用助手启动方式。
 
 ## 使用边界
 
@@ -65,7 +65,7 @@ node scripts/voice-server.cjs
 
 ## 开发与验证
 
-请使用 [v0.4.2 标签源码](https://github.com/doke69/ps-local-edit/tree/v0.4.2)，或已上传的 [版本开发分支](https://github.com/doke69/ps-local-edit/tree/codex/ps-local-edit-v0.3.10)（分支名称沿用创建时的版本号）。
+开发可使用 [main 最新源码](https://github.com/doke69/ps-local-edit/tree/main)；已发布安装包对应 [v0.4.2 标签源码](https://github.com/doke69/ps-local-edit/tree/v0.4.2)。main 已移除旧 WebView 页面、开发电脑专用脚本及生成文件的源码跟踪；运行打包或预览脚本可重新生成 dist 文件。
 
 ```sh
 node --test tests/*.test.cjs
