@@ -35,7 +35,7 @@
 4. 重启 Photoshop，在“增效工具”中打开“局部改图”。
 5. 在设置中保存自己的 LK888 API Key，检查连接并同步模型。
 
-也可尝试双击 CCX 通过 Creative Cloud 安装，或使用 Adobe UXP Developer Tool 加载当前版本源码中的 `plugin/manifest.json`。本包尚未完成 OpenUXP 实机安装验证。
+也可尝试双击 CCX 通过 Creative Cloud 安装，或使用 Adobe UXP Developer Tool 加载当前版本源码中的 `plugin/manifest.json`。本包已由用户完成 OpenUXP 实机安装验证。
 
 ## 使用流程
 
