@@ -50,6 +50,7 @@ try {
     $arguments += (Join-Path $PSScriptRoot 'Installer.cs'); $arguments += $attributes
     & (Join-Path $framework 'csc.exe') @arguments
     if ($LASTEXITCODE -ne 0) { throw 'Windows GUI compilation failed.' }
+    Copy-Item -LiteralPath $icon -Destination (Join-Path $dist ('Photoshop-AI-Edit-'+$version+'-Windows.ico')) -Force
     $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $output).Hash.ToLowerInvariant()
     [IO.File]::WriteAllText(($output+'.sha256'),($hash+'  '+[IO.Path]::GetFileName($output)+"`n"))
     Write-Host ('Built: '+$output)
