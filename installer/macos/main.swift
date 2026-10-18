@@ -61,7 +61,7 @@ struct InstallerView: View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 0) {
                 if let logo = NSImage(contentsOf: state.resources.appendingPathComponent("AppIcon.png")) {
-                    Image(nsImage: logo).resizable().interpolation(.high).frame(width: 96, height: 96).cornerRadius(23).shadow(color: .black.opacity(0.3), radius: 20, y: 8)
+                    Image(nsImage: logo).resizable().interpolation(.high).frame(width: 96, height: 96).shadow(color: .black.opacity(0.3), radius: 20, y: 8)
                 }
                 Text("PHOTOSHOP").font(.system(size: 10, weight: .bold)).tracking(2.5).foregroundColor(accent).padding(.top, 24)
                 Text("AI Edit").font(.system(size: 39, weight: .bold)).tracking(-1).foregroundColor(.white).padding(.top, 6)
@@ -133,11 +133,25 @@ let app = NSApplication.shared
 app.setActivationPolicy(.regular)
 let arguments = CommandLine.arguments
 let screenshotIndex = arguments.firstIndex(of: "--preview-screenshot")
-let preview = screenshotIndex != nil
+let appIconIndex = arguments.firstIndex(of: "--preview-app-icon")
+let preview = screenshotIndex != nil || appIconIndex != nil
 let resources: URL
 if let index = arguments.firstIndex(of: "--resources"), arguments.count > index + 1 { resources = URL(fileURLWithPath: arguments[index + 1]) }
 else { resources = Bundle.main.resourceURL! }
 if let icon = NSImage(contentsOf: resources.appendingPathComponent("AppIcon.icns")) { app.applicationIconImage = icon }
+// Export the very image assigned to the Dock, without opening an installable UI.
+if let index = appIconIndex, arguments.count > index + 1 {
+    guard let image = app.applicationIconImage,
+          let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 512, pixelsHigh: 512, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0),
+          let context = NSGraphicsContext(bitmapImageRep: bitmap) else { exit(5) }
+    NSGraphicsContext.saveGraphicsState()
+    NSGraphicsContext.current = context
+    context.cgContext.clear(CGRect(x: 0, y: 0, width: 512, height: 512))
+    image.draw(in: NSRect(x: 0, y: 0, width: 512, height: 512), from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: false, hints: [.interpolation: NSImageInterpolation.high])
+    NSGraphicsContext.restoreGraphicsState()
+    guard let data = bitmap.representation(using: .png, properties: [:]) else { exit(6) }
+    do { try data.write(to: URL(fileURLWithPath: arguments[index + 1])); exit(0) } catch { exit(7) }
+}
 let state = InstallState(resources: resources, preview: preview)
 if preview, arguments.contains("--preview-uninstall") { state.operation = "uninstall" }
 if preview, arguments.contains("--preview-complete") { state.phase = "success" }

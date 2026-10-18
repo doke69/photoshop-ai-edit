@@ -48,4 +48,5 @@ jobs:
             dist/windows-smoke-report.txt
             dist/*-Windows.ico
             dist/windows*-exe-icon.png
+            dist/windows-shell-icon-*.png
           if-no-files-found: error

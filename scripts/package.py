@@ -78,10 +78,14 @@ def build_installers():
         binaries = contents / 'MacOS'
         resources.mkdir(parents=True)
         binaries.mkdir()
+        alpha_check = work / 'check-icon-alpha'
+        subprocess.run(['xcrun', 'swiftc', '-module-cache-path', str(work / 'swift-cache'),
+                        str(root / 'tests/installer/icon-alpha.swift'), '-o', str(alpha_check)], check=True)
         copy_plugin(resources / 'plugin')
         (resources / '安装与使用指南.html').write_text(guide)
         shutil.copy2(root / 'assets/branding/app-icon.png', resources / 'AppIcon.png')
         make_icns(resources / 'AppIcon.png', resources / 'AppIcon.icns', work / 'AppIcon.iconset')
+        subprocess.run([str(alpha_check), str(resources / 'AppIcon.png'), str(resources / 'AppIcon.icns')], check=True)
         disk_icon = work / 'DiskIcon.icns'
         make_icns(root / 'assets/branding/mounted-disk.png', disk_icon, work / 'DiskIcon.iconset')
         info = {'CFBundleExecutable': 'AIEditInstaller', 'CFBundleIdentifier': 'com.local.lk888.psedit.installer',
@@ -102,6 +106,7 @@ def build_installers():
         executable.chmod(0o755)
         subprocess.run(['codesign', '--force', '--sign', '-', str(app)], check=True)
         subprocess.run(['codesign', '--verify', '--strict', str(app)], check=True)
+        subprocess.run([str(alpha_check), '--bundle', str(app), str(work / 'native-bundle-icon.png')], check=True)
         mac = archive_tree(app, dist / f'Photoshop-AI-Edit-{version}-macOS-universal.zip', app.name)
         image_root = work / 'dmg'
         image_root.mkdir()

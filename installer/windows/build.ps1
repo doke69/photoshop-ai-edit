@@ -9,7 +9,11 @@ New-Item -ItemType Directory -Path $work | Out-Null
 try {
     Add-Type -AssemblyName System.Drawing
     # ICO contains PNG frames at Windows shell sizes, using the same brand master.
-    $source = [Drawing.Image]::FromFile((Join-Path $root 'assets\branding\windows-installer.png'))
+    $source = [Drawing.Image]::FromFile((Join-Path $root 'assets\branding\app-icon.png'))
+    # Reject opaque square artwork before producing any Windows icon frames.
+    foreach ($point in @(@(0,0),@(($source.Width-1),0),@(0,($source.Height-1)),@(($source.Width-1),($source.Height-1)))) {
+        if ($source.GetPixel($point[0],$point[1]).A -gt 4) { $source.Dispose(); throw 'Icon master has an opaque background. Use the shared transparent cutout.' }
+    }
     $frames = @()
     try {
         foreach ($size in @(16,24,32,48,64,128,256)) {
@@ -45,7 +49,7 @@ try {
     $output = Join-Path $dist ('Photoshop-AI-Edit-' + $version + '-Windows-Setup.exe')
     $arguments = @('/nologo','/target:winexe','/platform:anycpu','/optimize+','/utf8output','/codepage:65001',('/out:'+$output),('/win32icon:'+$icon),('/win32manifest:'+(Join-Path $PSScriptRoot 'app.manifest')),
         ('/resource:'+(Join-Path $PSScriptRoot 'Main.xaml')+',Main.xaml'),
-        ('/resource:'+(Join-Path $root 'assets\branding\windows-installer.png')+',Brand.png'),
+        ('/resource:'+(Join-Path $root 'assets\branding\app-icon.png')+',Brand.png'),
         ('/resource:'+(Join-Path $dist 'windows-payload.zip')+',Payload.zip'))
     foreach ($reference in @('System.dll','System.Core.dll','System.Xaml.dll','System.IO.Compression.dll')) { $arguments += '/reference:'+(Join-Path $framework $reference) }
     foreach ($reference in @('WindowsBase.dll','PresentationCore.dll','PresentationFramework.dll')) { $arguments += '/reference:'+(Join-Path $framework ('WPF\'+$reference)) }
