@@ -39,7 +39,9 @@
 
 ## 安装与卸载
 
-<img src="assets/readme/installer-v0.4.3.png" alt="安装与卸载向导" width="760">
+<img src="assets/readme/installer-v0.4.4.png" alt="Mac 安装与卸载向导" width="760">
+
+<img src="assets/readme/windows-installer-v0.4.4.png" alt="Windows 安装与卸载向导，实际 Windows 构建渲染" width="760">
 
 从 [v0.4.4 Releases](https://github.com/doke69/photoshop-ai-edit/releases/tag/v0.4.4) 下载对应平台文件：
 
@@ -122,7 +124,7 @@ python3 scripts/package.py
 python3 scripts/package.py --installers
 ```
 
-插件共 **132 项自动测试通过**，新增首次配置、同步失败引导及任务确认交互检查；接口使用模拟响应，未调用付费生图。自动测试不代表所有 Photoshop 版本、原生界面和安装工具的实机兼容性已验证。
+插件共 **132 项自动测试通过**，覆盖首次配置、同步失败引导及任务确认交互检查；接口使用模拟响应，未调用付费生图。自动测试不代表所有 Photoshop 版本、原生界面和安装工具的实机兼容性已验证。
 
 ## 来源与许可
 
