@@ -39,9 +39,34 @@ final class InstallState: ObservableObject {
     }
     func guide(anchor: String? = nil) {
         guard !preview else { return }
-        var url = URLComponents(url: resources.appendingPathComponent("安装与使用指南.html"), resolvingAgainstBaseURL: false)!
-        url.fragment = anchor
-        if let target = url.url { NSWorkspace.shared.open(target) }
+        var file: URL?
+        do {
+            let root = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/Photoshop AI Edit/Guides", isDirectory: true)
+            let saved = try prepareGuide(resources: resources, destinationRoot: root, version: version)
+            file = saved
+            let target = try guideURL(file: saved, anchor: anchor)
+            // Use the web browser explicitly, rather than LaunchServices trying
+            // to open a document nested inside this installer application.
+            guard let browser = NSWorkspace.shared.urlForApplication(toOpen: URL(string: "https://example.com")!)
+                    ?? NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Safari") else {
+                throw InstallerFailure(message: "没有找到可用浏览器，请手动打开指南文件。")
+            }
+            let configuration = NSWorkspace.OpenConfiguration()
+            configuration.promptsUserIfNeeded = false
+            NSWorkspace.shared.open([target], withApplicationAt: browser, configuration: configuration) { _, error in
+                if let error = error { DispatchQueue.main.async { self.guideFailure(error, file: saved) } }
+            }
+        } catch { guideFailure(error, file: file) }
+    }
+    private func guideFailure(_ error: Error, file: URL?) {
+        let alert = NSAlert()
+        alert.messageText = "无法自动打开使用指南"
+        alert.informativeText = error.localizedDescription + (file.map { "\n\n指南已保存：" + $0.path + "\n可在 Finder 中选择浏览器打开。" } ?? "\n请打开 DMG 内附带的 HTML 使用说明。")
+        alert.addButton(withTitle: "好")
+        if let file = file {
+            alert.addButton(withTitle: "在 Finder 中查看")
+            if alert.runModal() == .alertSecondButtonReturn { NSWorkspace.shared.activateFileViewerSelecting([file]) }
+        } else { alert.runModal() }
     }
 }
 
@@ -139,6 +164,18 @@ struct InstallerView: View {
              .background(Color(red: 0.075, green: 0.085, blue: 0.105))
         }.frame(width: 760, height: 500).preferredColorScheme(.dark)
     }
+}
+
+// Export the bundled guide for fixture checks, without a window, browser or
+// access to the user's Adobe directories.
+if let index = CommandLine.arguments.firstIndex(of: "--verify-guide"), CommandLine.arguments.count > index + 1 {
+    do {
+        let resources = Bundle.main.resourceURL!
+        let manifest = try JSONSerialization.jsonObject(with: Data(contentsOf: resources.appendingPathComponent("plugin/manifest.json"))) as! [String: Any]
+        let file = try prepareGuide(resources: resources, destinationRoot: URL(fileURLWithPath: CommandLine.arguments[index + 1]), version: manifest["version"] as! String)
+        print(try guideURL(file: file, anchor: "first-open").absoluteString)
+        exit(0)
+    } catch { FileHandle.standardError.write(Data((error.localizedDescription + "\n").utf8)); exit(8) }
 }
 
 let app = NSApplication.shared

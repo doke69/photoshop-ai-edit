@@ -5,9 +5,9 @@ const { test } = require('node:test');
 const api = require('../plugin/api');
 const {TaskQueue}=require('../plugin/task-queue');const {pngRGBA}=require('../plugin/png');
 
-function harness({ switchDocument = false, reopenSameDocument = false, reopenPathless = false, submissionFails = false, shrinkUpload = false, apiModels = null, modelSyncFails = false, balanceGate = null, balanceFails = false, nativeDropdownValue = false, missingKey = false, savedLocal = [] } = {}) {
+function harness({ switchDocument = false, reopenSameDocument = false, reopenPathless = false, submissionFails = false, shrinkUpload = false, apiModels = null, modelSyncFails = false, balanceGate = null, balanceFails = false, nativeDropdownValue = false, missingKey = false, savedLocal = [], quotaBytes = Infinity, rejectAcceptedSave = false } = {}) {
   const apiCalls=[];let notification; const action={addNotificationListener:async(_events,listener)=>{notification=listener;}};
-  const nodes = {}, local = new Map(savedLocal), calls = [], writes = [], requests = [], reads = [], docEvents = {}, helperCalls=[];let reloads=0, imageDecodes=0,secureKey=missingKey?'':'test-key';
+  const nodes = {}, local = new Map(savedLocal), calls = [], writes = [], requests = [], reads = [], docEvents = {}, helperCalls=[];let reloads=0, imageDecodes=0,secureKey=missingKey?'':'test-key',quotaErrors=0;
   function makeNode(id='') { const node={id,value:id==='prompt'?'改成红色':id==='model'?'banana-2':'',textContent:'',hidden:false,style:{},children:[],attributes:{},className:'',classList:{add(){},remove(){}},addEventListener(event,fn){this[event]=fn;},setAttribute(name,value){this.attributes[name]=value;},removeAttribute(name){delete this.attributes[name];},append(...items){for(const item of items)this.appendChild(item);},appendChild(item){item.parentNode=this;this.children.push(item);if(item.id.startsWith('model-param-'))nodes[item.id]=item;},removeChild(item){this.children=this.children.filter(child=>child!==item);item.parentNode=null;},focus(){document.activeElement=this;},replaceChildren(...items){this.children=[];this.append(...items);},get parentElement(){return makeNode('parent');}};Object.defineProperty(node,'innerHTML',{get(){return '';},set(value){if(value==='')this.children=[];}});if(['model','quality','output-size','count','model-filter'].includes(id)){
    if(['count','model-filter'].includes(id)){const menu={children:(id==='count'?['1','2','3','4']:['image','favorites','all']).map(value=>{const item=makeNode('sp-menu-item');item.setAttribute('value',value);return item;})};node.children.push(menu);}
    let value=node.value;Object.defineProperty(node,'value',{get(){return nativeDropdownValue?(id==='model'?'banana-2':'stale display label'):(node.children[0]?.children?.[node.selectedIndex]?.attributes.value??value);},set(next){value=next;if(nativeDropdownValue)return;const options=node.children[0]?.children||[];const index=options.findIndex(n=>n.attributes.value===next);if(index>=0)node.selectedIndex=index;}});
@@ -35,11 +35,11 @@ function harness({ switchDocument = false, reopenSameDocument = false, reopenPat
     return { ok: true, json: async () => ({ is_final: true, state: 'success', result_url: 'data:image/png;base64,YWJj' }) };
   };
   class Client extends api.MediaClient { constructor(key) { super(key, fetch); } }
-  const context = { document, location:{reload:()=>{reloads++;}}, localStorage: { getItem: k => local.get(k) || null, setItem: (k, v) => local.set(k, v), removeItem: k => local.delete(k) }, setTimeout, clearTimeout, Uint8Array, console, fetch, require(name) {
+  const context = { document, location:{reload:()=>{reloads++;}}, localStorage: { getItem: k => local.get(k) || null, setItem: (k, v) => {if(String(v).length>quotaBytes||(rejectAcceptedSave&&k==='lk888-jobs'&&String(v).includes('existing-task'))){quotaErrors++;const error=new Error('quota exceeded');error.name='QuotaExceededError';throw error;}local.set(k,v);}, removeItem: k => local.delete(k) }, setTimeout, clearTimeout, Uint8Array, console, fetch, require(name) {
     if (name === 'photoshop') return { app, action, imaging: { encodeImageData: async () => 'YWJj' }, constants: { DocumentMode: { RGB: 'RGB' } } };
     if (name === 'uxp') return { storage };
     if (name === './modules/ps') return ps;if(name==='./modules/geometry')return require('../plugin/modules/geometry');
-    if(name==='./ui-controls')return require('../plugin/ui-controls');if(name==='./model-policy')return require('../plugin/model-policy');if(name==='./prompt-editor')return require('../plugin/prompt-editor');if(name==='./voice'){const Base=require('../plugin/voice').VoiceController;return {VoiceController:class extends Base{constructor(options){super({...options,fetchImpl:fetch});}}};}if(name==='./platform-profiles')return require('../plugin/platform-profiles');if(name==='./dropdown')return require('../plugin/dropdown');if(name==='./model-catalog')return require('../plugin/model-catalog');if(name==='./task-queue')return {TaskQueue};if(name==='./png'){const png=require('../plugin/png');return shrinkUpload?{...png,uploadPNG:async()=>({encoded:png.pngRGBA(150,100,new Uint8Array(150*100*4)),width:150,height:100,originalWidth:300,originalHeight:200,resized:true})}:png;}
+    if(name==='./ui-controls')return require('../plugin/ui-controls');if(name==='./model-policy')return require('../plugin/model-policy');if(name==='./prompt-editor')return require('../plugin/prompt-editor');if(name==='./voice'){const Base=require('../plugin/voice').VoiceController;return {VoiceController:class extends Base{constructor(options){super({...options,fetchImpl:fetch});}}};}if(name==='./platform-profiles')return require('../plugin/platform-profiles');if(name==='./dropdown')return require('../plugin/dropdown');if(name==='./model-catalog')return require('../plugin/model-catalog');if(name==='./task-queue')return require('../plugin/task-queue');if(name==='./png'){const png=require('../plugin/png');return shrinkUpload?{...png,uploadPNG:async()=>({encoded:png.pngRGBA(150,100,new Uint8Array(150*100*4)),width:150,height:100,originalWidth:300,originalHeight:200,resized:true})}:png;}
     if (name === './modules/fs') return { arrayBufferToBase64:v=>Buffer.from(v).toString('base64'), base64ToArrayBuffer: v => {imageDecodes++;return Uint8Array.from(Buffer.from(v, 'base64')).buffer;} };
     if (name === './api') return { ...api, MediaClient: Client };
     throw new Error(name);
@@ -48,7 +48,7 @@ function harness({ switchDocument = false, reopenSameDocument = false, reopenPat
   // init loads saved prompt; restore the user's entry for this run.
   nodes.prompt ||= document.getElementById('prompt');nodes.prompt.value = '改成红色';
   document.getElementById('quality'); document.getElementById('output-size');
-  return { document,app,notify:()=>notification?.(),choices,apiCalls,node:id=>document.getElementById(id),select:choose,selected:id=>require('../plugin/dropdown').readChoice(document.getElementById(id)),openHistory:id=>context.openHistory(id),dataWrites,refreshTasks:()=>context.tasksUI(),nodes, docEvents, calls, writes, reads, local, capture, requests, helperCalls, saveAnnotation:image=>context.saveAnnotation(image), get reloads(){return reloads;}, get imageDecodes(){return imageDecodes;}, ready:async()=>{for(let i=0;i<10;i++)await new Promise(r=>setImmediate(r));nodes.prompt.value='改成红色';} };
+  return { document,app,notify:()=>notification?.(),choices,apiCalls,node:id=>document.getElementById(id),select:choose,selected:id=>require('../plugin/dropdown').readChoice(document.getElementById(id)),openHistory:id=>context.openHistory(id),dataWrites,refreshTasks:()=>context.tasksUI(),nodes, docEvents, calls, writes, reads, local, capture, requests, helperCalls, saveAnnotation:image=>context.saveAnnotation(image), get reloads(){return reloads;}, get imageDecodes(){return imageDecodes;}, get quotaErrors(){return quotaErrors;}, ready:async()=>{for(let i=0;i<10;i++)await new Promise(r=>setImmediate(r));nodes.prompt.value='改成红色';} };
 }
 
 
@@ -384,4 +384,58 @@ test('task reset requires the custom confirmation and clears it after completion
  assert.equal(confirm.attributes['aria-checked'],'true');assert.equal(stopped,2);
  confirm.keydown({key:' ',target:h.node('prompt'),preventDefault(){throw Error('intercepted typing');},stopPropagation(){}});
  assert.equal(confirm.attributes['aria-checked'],'true');assert.equal(h.requests.length,0);
+});
+
+test('an interrupted submission reopens as uncertain and blocks another generation',async()=>{
+ const saved={id:'interrupted',title:'局部改图 1',number:1,createdAt:1,state:'submitting',count:2,tasks:[{id:'accepted',state:'running',results:[]}],prompt:'改成红色',model:'banana-2',quality:'auto',ratio:'original',extraParams:{}};
+ const h=harness({savedLocal:[['lk888-jobs',JSON.stringify([saved])]]});await h.ready();
+ const jobs=JSON.parse(h.local.get('lk888-jobs'));
+ assert.equal(jobs[0].state,'uncertain');
+ assert.equal(jobs[0].submissionFailed,true);
+ assert.equal(jobs[0].pendingSubmit,undefined);
+ assert.match(jobs[0].error,/核对/);
+ assert.equal(h.node('generate').disabled,true);
+ assert.equal(h.node('generate').textContent,'请先核对提交结果');
+ h.node('generate').click();await h.ready();
+ assert.equal(h.requests.length,0);
+ assert.match(h.node('status').textContent,/核对|待确认/);
+});
+
+test('quota pressure saves task ids without history thumbnails',async()=>{
+ const old={id:'old',title:'局部改图 1',number:1,state:'ready',count:1,tasks:[{id:'old-task',state:'ready',results:[]}],thumbnail:'data:image/png;base64,'+'A'.repeat(200000)};
+ const h=harness({savedLocal:[['lk888-jobs',JSON.stringify([old])]],quotaBytes:150000});
+ await h.ready();
+ h.select('count','2');
+ await h.nodes.generate.click();await h.ready();
+ assert.equal(h.requests.length,2);
+ assert.ok(h.quotaErrors>0);
+ const jobs=JSON.parse(h.local.get('lk888-jobs'));
+ const fresh=jobs.find(j=>j.id!=='old');
+ assert.ok(fresh);
+ assert.equal(fresh.tasks.length,2);
+ assert.equal(fresh.pendingSubmit,undefined);
+ assert.equal(fresh.thumbnail,undefined);
+});
+
+test('an unwritable queue fails closed instead of submitting an untracked task',async()=>{
+ const h=harness({quotaBytes:20});await h.ready();
+ await h.nodes.generate.click();await h.ready();
+ assert.equal(h.requests.length,0);
+ assert.equal(h.local.get('lk888-jobs'),undefined);
+ assert.match(h.node('status').textContent,/存储空间不足/);
+});
+
+// The task may keep polling after its id could not be saved. It must still
+// require explicit confirmation before the user can submit a second request.
+test('an accepted task with unsaved state blocks generation until explicitly confirmed',async()=>{
+ const h=harness({rejectAcceptedSave:true});await h.ready();
+ h.select('count','2');
+ await h.nodes.generate.click();await h.ready();
+ assert.equal(h.requests.length,1);
+ assert.equal(h.node('generate').disabled,true);
+ assert.equal(h.node('generate').textContent,'请先核对提交结果');
+ await h.nodes.generate.click();await h.ready();
+ assert.equal(h.requests.length,1);
+ h.node('reset-confirm').click();h.node('reset-job').click();await h.ready();
+ assert.equal(h.node('generate').disabled,false);
 });

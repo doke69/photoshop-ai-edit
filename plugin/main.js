@@ -5,7 +5,7 @@ const { storage, shell } = require('uxp');
 const ps = require('./modules/ps');
 const fileUtils = require('./modules/fs');
 const { MODELS, MediaClient, imageSources, unwrap, validateImages } = require('./api');
-const { TaskQueue }=require('./task-queue');
+const { TaskQueue, reconcileInterruptedSubmissions }=require('./task-queue');
 const {readChoice,selectChoice,setChoices,setChoiceDisabled,closeChoices,initChoices,forgetChoice}=require('./dropdown');
 const {platformProfile}=require('./platform-profiles');
 const {isTokenModel}=require('./model-policy');
@@ -20,6 +20,7 @@ let promptEditor=null,tabsSignature='',resultsSignature='',extraSignature='',ext
 let lastSnapshot=null;
 let lastInputRefs=null,lastInputBusy=null;
 const stateLabel=record=>record.submissionFailed&&record.tasks?.length&&record.state!=='uncertain'?(record.tasks.some(t=>t.state==='running')?'部分提交 · 生成中':'部分失败'):record.state==='draft'?'待生成':record.state==='submitting'?'提交中':record.state==='ready'?'已完成':record.state==='failed'?'失败':record.state==='uncertain'?'待确认':'生成中';
+const awaitingConfirmation=record=>!!record?.pendingSubmit||record?.state==='uncertain'||record?.state==='submitting';
 function releaseCapture(){if(capture?.imageData?.imageData){capture.imageData.imageData.dispose();capture.imageData=null;}}
 const resultDownloads=new Map();
 const voice=new VoiceController({context:()=>selectedJobId,onState:data=>promptEditor?.voice(data),onText:text=>promptEditor?.insert(text)});
@@ -35,6 +36,7 @@ let capture = null, reference = null, busy = false, initialized = false;
 let job = null;
 let apiBusy=false;
 let pauseRequested=false,modelList=normalizeModels(MODELS),favoriteModels=[],modelFilter='all',modelSearch='',modelAccount='',modelSyncToken=0,modelPage=0;
+let persistWarningShown=false,compactWarningShown=false;
 function accountFingerprint(value){let a=2166136261,b=5381;for(let i=0;i<value.length;i++){a=Math.imul(a^value.charCodeAt(i),16777619);b=Math.imul(b,33)^value.charCodeAt(i);}return (a>>>0).toString(16).padStart(8,'0')+(b>>>0).toString(16).padStart(8,'0')+'-'+value.length;}
 function selectedModelProfile(){const id=readChoice($('model'));return id==='custom'?normalizeModels([$('custom-model').value.trim()])[0]:modelList.find(m=>m.id===id);}
 function fillChoices(id,values,fallback,preferred){
@@ -230,8 +232,22 @@ function matchesTaskDocument(doc, region){
  return normalize(doc.path)===normalize(context.documentPath)&&sameCanvas;
 }
 function saveJob() { if (job) localStorage.setItem('lk888-job', JSON.stringify(job)); else localStorage.removeItem('lk888-job'); }
+// Thumbnails dominate the localStorage budget and already live in the UXP data
+// folder snapshots, so only the newest ones stay inline. If a quota error still
+// occurs, retry without any preview rather than losing accepted task ids.
+const HISTORY_THUMBNAIL_LIMIT=20;
+function persistJobs(jobs){
+ const withoutThumbnail=record=>{const {thumbnail,...rest}=record;return rest;};
+ const value=JSON.stringify(jobs.map((record,index)=>index<HISTORY_THUMBNAIL_LIMIT?record:withoutThumbnail(record)));
+ try{localStorage.setItem('lk888-jobs',value);return;}
+ catch(error){
+  try{localStorage.setItem('lk888-jobs',JSON.stringify(jobs.map(withoutThumbnail)));}
+  catch(_){throw error;}
+  if(!compactWarningShown){compactWarningShown=true;console.warn('本机存储空间不足，已保存任务状态但省略历史缩略图。');}
+ }
+}
 function refresh() {
-  const pendingConfirmation=queue?.jobs.find(j=>j.id===selectedJobId)?.state==='uncertain';
+  const pendingConfirmation=awaitingConfirmation(queue?.jobs.find(j=>j.id===selectedJobId));
   setButtonDisabled($('generate'),busy||apiBusy||pendingConfirmation);
   $('generate').textContent=pendingConfirmation?'请先核对提交结果':busy ? '正在处理…' : queue?.jobs.find(j=>j.id===selectedJobId)?.tasks.length?'按当前输入再次生成':'生成当前选区';
   setButtonDisabled($('refresh-selection'),busy);setButtonDisabled($('tab-edit'),busy);
@@ -265,7 +281,7 @@ async function withApiBusy(fn,failurePrefix='',connectionCheck=false){
  const buttons=['test-key','refresh-models','save-key'];
  buttons.forEach(id=>setButtonDisabled($(id),true));
  try{await fn();}catch(error){const message=failurePrefix+(error.message||'接口检查失败，请稍后重试。');if(connectionCheck)connectionStatus('error');else $('models-status').textContent=message;status(message,true);}
- finally{apiBusy=false;setButtonDisabled($('generate'),busy||queue?.jobs.find(j=>j.id===selectedJobId)?.state==='uncertain');buttons.forEach(id=>setButtonDisabled($(id),false));}
+ finally{apiBusy=false;setButtonDisabled($('generate'),busy||awaitingConfirmation(queue?.jobs.find(j=>j.id===selectedJobId)));buttons.forEach(id=>setButtonDisabled($(id),false));}
 }
 async function downloadUncached(source) {
   if (source.startsWith('data:image/')) return { buffer: fileUtils.base64ToArrayBuffer(source.split(',')[1]), ext: source.includes('image/jpeg') ? 'jpg' : source.includes('image/webp') ? 'webp' : 'png' };
@@ -411,7 +427,7 @@ function tasksUI(){
   });
  }
   renderTasks();
- const historyLabel='历史记录 ('+queue.jobs.length+')';if($('tab-tasks').textContent!==historyLabel)$('tab-tasks').textContent=historyLabel;const selected=queue.jobs.find(j=>j.id===selectedJobId);$('panel-title').textContent=selected?selected.title+' · '+stateLabel(selected):'局部改图';$('refresh-selection').textContent=selected?.tasks.length?'读取新选区':'重新读取';$('generate').textContent=selected?.tasks.length?'按当前输入再次生成':'生成当前选区';
+ const historyLabel='历史记录 ('+queue.jobs.length+')';if($('tab-tasks').textContent!==historyLabel)$('tab-tasks').textContent=historyLabel;const selected=queue.jobs.find(j=>j.id===selectedJobId);$('panel-title').textContent=selected?selected.title+' · '+stateLabel(selected):'局部改图';$('refresh-selection').textContent=selected?.tasks.length?'读取新选区':'重新读取';$('generate').textContent=awaitingConfirmation(selected)?'请先核对提交结果':selected?.tasks.length?'按当前输入再次生成':'生成当前选区';
 }
 function navigatePage(page){closeChoices(document);if(page==='settings')voice.cancel();pageName=page;show('editor',page!=='settings');show('task-page',true);show('settings',page==='settings');show('page-tabs',page!=='settings');show('tab-edit',page!=='settings','inline-flex');show('refresh-selection',page!=='settings','inline-block');show('tab-tasks',page!=='settings','inline-block');$('settings-toggle').textContent=page==='settings'?'返回':'设置';tasksUI();}
 async function snapshot(id){
@@ -426,7 +442,7 @@ async function snapshot(id){
 }
 async function restoreCapture(id){const folder=await fs.getDataFolder(),meta=JSON.parse(await(await folder.getEntry(id+'.json')).read()),bytes=await(await folder.getEntry(id+'.bin')).read({format:storage.formats.binary});return {...meta,maskData:{...meta.mask,imageData:new Uint8Array(bytes)}};}
 async function generate(){voice.cancel();
- const current=queue?.jobs.find(j=>j.id===selectedJobId);if(current?.state==='uncertain')throw new Error('上次提交结果尚未确认，请先在平台核对任务，再在设置中结束待确认记录。');
+ const current=queue?.jobs.find(j=>j.id===selectedJobId);if(awaitingConfirmation(current))throw new Error('上次提交状态尚未确认，请先到平台核对任务，再在设置中结束待确认记录。');
  const prompt=$('prompt').value.trim();if(!prompt)throw new Error('请填写修改要求。');
  const profile=selectedModelProfile();if(!profile)throw new Error('请选择模型；自定义模型需在设置填写 ID。');
  const extraParams=readExtraParams();validateModelUse(profile,{imageCount:1+references.length});validateExtras(profile,extraParams);
@@ -447,7 +463,7 @@ async function generate(){voice.cancel();
  await queue.submit(record,images,params);
  selectedJobId=id;syncInputs();show('selection-gate',false);navigatePage('edit');if(record.state==='uncertain'||record.submissionFailed)status(record.error||'提交失败，请核对平台状态。',true);else status('已提交 '+record.model+'。下方显示生成状态；点击新建改图可以继续修改其他区域。');queue.tick();
 }
- async function openHistory(id){if(id===selectedJobId){historyOpen=false;tasksUI();return;}voice.cancel();if(selectedJobId!==id)await saveCurrent();const record=queue.jobs.find(j=>j.id===id);if(!record)return;const input=record.editor||record;record.closed=false;historyOpen=false;clearHistoryArmed=false;selectedJobId=id;tasksUI();releaseCapture();try{capture=await restoreCapture(record.captureRef);}catch(_){capture=null;}sourceImage=capture?.sourceImage||null;references=capture?.references||[];if(!sourceImage && capture){try{const folder=await fs.getDataFolder(),meta=JSON.parse(await(await folder.getEntry('selection.json')).read());if(meta.context.documentId===capture.context.documentId && JSON.stringify(meta.bounds)===JSON.stringify(capture.bounds))sourceImage=meta.sourceImage;}catch(_){}}$('prompt').value=input.prompt||'';promptEditor?.resize();if(!modelList.some(m=>m.id===input.model)&&input.model!=='custom')modelList.push(...normalizeModels([input.model]));renderModels(input.model);selectChoice($('quality'),input.quality||'auto');selectChoice($('output-size'),input.ratio||'original');selectChoice($('count'),String(input.count||1));restoreExtraParams(input.extraParams);show('selection-gate',!sourceImage,'flex');navigatePage('edit');syncInputs();status(sourceImage?'已恢复当时的输入。结果完成后点击图片添加图层。':record.state==='draft'?'当前为待生成选区：请先在 PS 框选，再读取选区。':'旧记录未保存输入缩略图；提示词和结果已恢复。');}
+ async function openHistory(id){if(id===selectedJobId){historyOpen=false;tasksUI();return;}voice.cancel();if(selectedJobId!==id)await saveCurrent();const record=queue.jobs.find(j=>j.id===id);if(!record)return;const input=record.editor||record;record.closed=false;historyOpen=false;clearHistoryArmed=false;selectedJobId=id;tasksUI();releaseCapture();try{capture=await restoreCapture(record.captureRef);}catch(_){capture=null;}sourceImage=capture?.sourceImage||null;references=capture?.references||[];if(capture?.thumbnail)record.thumbnail=capture.thumbnail;if(!sourceImage && capture){try{const folder=await fs.getDataFolder(),meta=JSON.parse(await(await folder.getEntry('selection.json')).read());if(meta.context.documentId===capture.context.documentId && JSON.stringify(meta.bounds)===JSON.stringify(capture.bounds))sourceImage=meta.sourceImage;}catch(_){}}$('prompt').value=input.prompt||'';promptEditor?.resize();if(!modelList.some(m=>m.id===input.model)&&input.model!=='custom')modelList.push(...normalizeModels([input.model]));renderModels(input.model);selectChoice($('quality'),input.quality||'auto');selectChoice($('output-size'),input.ratio||'original');selectChoice($('count'),String(input.count||1));restoreExtraParams(input.extraParams);show('selection-gate',!sourceImage,'flex');navigatePage('edit');syncInputs();status(sourceImage?'已恢复当时的输入。结果完成后点击图片添加图层。':record.state==='draft'?'当前为待生成选区：请先在 PS 框选，再读取选区。':'旧记录未保存输入缩略图；提示词和结果已恢复。');}
 async function candidateAction(data){const record=queue.jobs.find(j=>j.id===data.jobId),task=record?.tasks.find(t=>t.id===data.taskId),result=task?.results[data.index];if(!result)throw new Error('结果不存在。');
  const {buffer,ext}=await download(result.source);
  if(data.type==='preview'){const folder=await fs.getTemporaryFolder(),file=await folder.createFile('preview-'+task.id+'-'+data.index+'.'+ext,{overwrite:true});await file.write(buffer,{format:storage.formats.binary});const error=await shell.openPath(file.nativePath);if(error)throw new Error(error);status('已在系统图片查看器打开原尺寸结果。');return;}
@@ -600,13 +616,16 @@ async function init() {
   if(job && !jobs.some(j=>j.id==='legacy-'+job.createdAt)){
     const migrated={...job,id:'legacy-'+job.createdAt,captureRef:'selection',captureWidth:capture?.bounds.width||0,captureHeight:capture?.bounds.height||0,tasks:(job.tasks?.length?job.tasks:[{id:job.taskId,source:job.source}]).filter(t=>t.id).map(t=>({...t,state:t.source?'ready':'running',results:(t.sources|| (t.source?[t.source]:[])).map(source=>({source,imported:!!t.imported}))})),state:job.source?'ready':job.state};if(capture){await snapshot(migrated.id);migrated.captureRef=migrated.id;}jobs.unshift(migrated);localStorage.removeItem('lk888-job');job=null;
   }
-  queue=new TaskQueue({jobs,persist:value=>localStorage.setItem('lk888-jobs',JSON.stringify(value)),client,onChange:tasksUI});
+  const recoveredInterrupted=reconcileInterruptedSubmissions(jobs);
+  queue=new TaskQueue({jobs,persist:persistJobs,client,onChange:tasksUI,onPersistError:error=>{console.warn('无法保存本机任务状态：'+(error?.message||error));if(!persistWarningShown){persistWarningShown=true;status('本机存储空间不足，任务状态可能无法保存；已提交的任务请勿重复提交，可先清理历史记录。',true);}},onPersistRecovered:()=>{persistWarningShown=false;}});
    $('tab-edit').addEventListener('click',()=>withBusy(newDraft));$('tab-tasks').addEventListener('click',()=>{historyOpen=!historyOpen;if(!historyOpen)clearHistoryArmed=false;tasksUI();});
    $('reload-panel').addEventListener('click',()=>withBusy(async()=>{await saveCurrent();if(typeof location==='undefined'||typeof location.reload!=='function')throw new Error('当前 Photoshop 不支持面板重载。');if(selectedJobId)localStorage.setItem('lk888-reload-job-id',selectedJobId);location.reload();}));
    $('task-preview-close').addEventListener('click',()=>{$('task-preview').style.display='none';$('task-preview-image').removeAttribute('src');});
   if(typeof setInterval!=='undefined')setInterval(()=>queue.tick(),4000);
   queue.jobs.forEach((j,i)=>{j.number ||= queue.jobs.length-i;j.title ||= '局部改图 '+j.number;});
+  if(recoveredInterrupted)queue.save();
   queue.tick();settingsPage(false);const reloadJobId=localStorage.getItem('lk888-reload-job-id');localStorage.removeItem('lk888-reload-job-id');if(queue.jobs.length)await openHistory(queue.jobs.find(j=>j.id===reloadJobId)?.id||queue.jobs[0].id);
+  if(recoveredInterrupted)status('上次提交在写入任务编号前中断，已标记为待确认。请先到平台核对任务，避免重复扣费。',true);
   $('settings-toggle').addEventListener('click', () => settingsPage(!settingsOpen));
   promptEditor=new PromptEditor({platform:hostPlatform,node:$('prompt'),voiceButton:$('voice-prompt'),expandButton:$('expand-prompt'),container:$('prompt').parentElement,clipboard:typeof navigator!=='undefined'?navigator.clipboard:null,context:()=>selectedJobId,onChange:value=>localStorage.setItem('lk888-prompt',value),onNotice:(message,error)=>{const note=$('input-notice');note.textContent=message;note.className=error?'error':'';},onVoice:kind=>{if(kind==='stop')voice.stop();else voice.start();},readImageClipboard:()=>voice.request('/clipboard'),onImage:async data=>{if(references.length>=5)throw new Error('最多添加5张参考图。');const match=typeof data==='string'&&data.match(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/i);if(!match||data.length>14*1024*1024)throw new Error('截图格式或大小无效。');references.push({name:'截图.'+(match[1].toLowerCase()==='jpeg'?'jpg':match[1].toLowerCase()),data});syncInputs();}});
   promptEditor.resize();
@@ -636,7 +655,7 @@ async function init() {
   $('reset-job').addEventListener('click', () => {
     if (busy) return;
     if (!readChecked($('reset-confirm'))) { status('请先在平台确认原任务，再勾选设置中的确认项。', true); return; }
-    const pending=queue?.jobs.find(j=>j.id===selectedJobId);if(pending?.state==='uncertain'){pending.state=pending.tasks.some(t=>t.state==='running')?'running':'failed';pending.submissionFailed=true;pending.error='已在平台核对上次提交，未自动重试。';queue.save();}job = null; saveJob(); setChecked($('reset-confirm'),false,$('reset-confirm-mark')); status('已结束本机任务记录。不会取消平台任务。'); refresh();
+    const pending=queue?.jobs.find(j=>j.id===selectedJobId);if(awaitingConfirmation(pending)){delete pending.pendingSubmit;pending.state=pending.tasks.some(t=>t.state==='running')?'running':'failed';pending.submissionFailed=true;pending.error='已在平台核对上次提交，未自动重试。';queue.save();}job = null; saveJob(); setChecked($('reset-confirm'),false,$('reset-confirm-mark')); status('已结束本机任务记录。不会取消平台任务。'); refresh();
   });
   $('add-reference').addEventListener('click',()=>withBusy(async()=>{const files=await fs.getFileForOpening({types:['png','jpg','jpeg','webp'],allowMultiple:true});if(files)await addFiles(Array.isArray(files)?files:[files]);}));
   $('paste-reference').addEventListener('click',()=>promptEditor.pasteImage());

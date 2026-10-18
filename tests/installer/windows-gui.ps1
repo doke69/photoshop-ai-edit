@@ -29,6 +29,17 @@ function Click($Name) {
 try {
     New-Item -ItemType Directory -Path $work | Out-Null
     $env:APPDATA=$work
+    # No installation or browser launch: verify the exact embedded HTML can
+    # survive the EXE exiting, and can be atomically refreshed at a Chinese path.
+    $guide=Join-Path $work '独立使用指南\index.html'
+    foreach ($attempt in @(1,2)) {
+        $check=Start-Process -FilePath $exe -ArgumentList @('--verify-guide',('"'+$guide+'"')) -PassThru
+        if (-not $check.WaitForExit(30000)) { $check.Kill(); throw 'Guide export timed out.' }
+        if ($check.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $guide)) { throw 'Embedded guide was lost after EXE exit.' }
+    }
+    $html=[IO.File]::ReadAllText($guide,[Text.Encoding]::UTF8)
+    if (-not $html.Contains('id="first-open"') -or $html.Contains('{{VERSION}}')) { throw 'Embedded guide content is invalid.' }
+    if (Get-ChildItem (Split-Path $guide -Parent) -Filter '*.tmp') { throw 'Guide left temporary files.' }
     $preview=Start-Process -FilePath $exe -ArgumentList @('--preview',('"'+$shot+'"')) -PassThru
     if (-not $preview.WaitForExit(30000)) { $preview.Kill(); throw 'Preview timed out.' }
     if ($preview.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $shot)) { throw 'Preview failed.' }

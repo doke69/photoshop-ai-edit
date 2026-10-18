@@ -43,7 +43,7 @@
 | Windows | [EXE 图形安装包](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.7/Photoshop-AI-Edit-0.4.7-Windows-Setup.exe) | 双击打开，选择「安装 / 更新」 |
 | 两个平台通用 | [HTML 使用说明](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.7/Photoshop-AI-Edit-0.4.7-Guide.html) | 下载后用浏览器打开，包含 API 创建截图与首次打开帮助 |
 
-<img src="assets/readme/installer-v0.4.7.png" alt="v0.4.7 Mac 安装与卸载向导：安装、保留数据、API 设置及首次打开帮助" width="760">
+<img src="assets/readme/installer-v0.4.7.png" alt="Mac 安装与卸载向导：安装、保留数据、API 设置及首次打开帮助" width="760">
 
 <sub>Mac 安装界面；Windows 安装器采用同款双栏设计。</sub>
 
@@ -149,7 +149,7 @@ python3 scripts/package.py
 python3 scripts/package.py --installers
 ```
 
-插件此前通过 132 项自动测试，接口使用模拟响应，未调用付费生图。自动测试不代表所有 Photoshop 版本与系统的实机兼容性均已验证。运行打包或预览脚本可重新生成 dist 文件。
+插件通过 140 项自动测试，接口使用模拟响应，未调用付费生图。自动测试不代表所有 Photoshop 版本与系统的实机兼容性均已验证。运行打包或预览脚本可重新生成 dist 文件。
 
 </details>
 
