@@ -39,9 +39,9 @@
 
 ## 安装与卸载
 
-<img src="assets/readme/installer-v0.4.4.png" alt="Mac 安装与卸载向导" width="760">
+<img src="assets/readme/installer-v0.4.5.png" alt="Mac 安装与卸载向导" width="760">
 
-<img src="assets/readme/windows-installer-v0.4.4.png" alt="Windows 安装与卸载向导，实际 Windows 构建渲染" width="760">
+<img src="assets/readme/windows-installer-v0.4.5.png" alt="Windows 安装与卸载向导，实际 Windows 构建渲染" width="760">
 
 从 [v0.4.5 Releases](https://github.com/doke69/photoshop-ai-edit/releases/tag/v0.4.5) 下载对应平台文件：
 
