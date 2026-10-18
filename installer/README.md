@@ -70,3 +70,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File installer/windows/build.ps1
 `.github/workflows/windows-installer.yml` 在 Windows Server 2022 编译，并运行 `tests/installer/windows.ps1` 与 `windows-gui.ps1`。前者在临时目录覆盖中文路径、带 BOM 登记、首次安装、升级、元数据与其他插件保留、私有数据保留、安装及卸载回滚、重复卸载、异常登记和目标占用。后者启动最终 EXE，通过 Windows UI Automation 点击安装及卸载，并检查实际内嵌插件的文件哈希，另生成只读预览截图。`--preview <png>` 明确禁用安装及指南打开，也不访问 Adobe 目录。
 
 这些检查不等于 Windows 10 / 11 用户电脑上的 Photoshop 实机验证。Mac 的安装器及已发布 DMG 不受此更改影响。WPF 构建参考 [Microsoft 文档](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/app-development/building-a-wpf-application-wpf?view=netframeworkdesktop-4.8)，云端验证环境见 [GitHub 托管运行器](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)。
+
+### EXE 文件图标
+
+Windows EXE 通过 `/win32icon` 内嵌品牌 Logo，包含 16、24、32、48、64、128、256 像素；安装窗口也使用品牌图标。构建另外输出 `Photoshop-AI-Edit-<version>-Windows.ico`，可用于手动修改快捷方式图标。Mac Finder 不一定读取 Windows PE 内嵌图标，应以 Windows 资源管理器为准。
+
+`tests/installer/windows-icons.ps1` 调用 Windows Shell 原生接口从 EXE 提取 256 像素图标，并验证尺寸与品牌颜色，输出实际图标预览。手动运行 Windows workflow 时，可填写 `published_version`，额外下载并检查已经发布的 EXE；默认只检查本次构建，不依赖尚未发布的新版本。

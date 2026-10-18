@@ -55,6 +55,8 @@
 
 安装前保存文件并完全退出 Photoshop。安装器无需 Node.js、管理员权限或 UXP 开发工具；只更新当前用户的本插件，备份旧文件和插件登记，保留 API Key 与任务数据。备份位于 Adobe UXP 用户目录中的 `Plugins/.AIEditInstallerBackups`。安装包附带离线「安装与使用指南」，安装完成后可直接打开。Mac 安装器采用深色双栏界面与原创「选区 + 焕新」图标，提供安装 / 更新与卸载两个入口；Windows 使用同款深色双栏 EXE 安装器，内置插件和指南，无需解压，失败时可保存诊断记录；ZIP 中的 `Install.cmd` / `Uninstall.cmd` 仍可备用。卸载同样备份插件文件并保留 Key、历史和其他插件。
 
+Windows EXE 已内嵌多尺寸品牌图标。需要手动设置快捷方式图标时，可下载 [Windows ICO](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.4/Photoshop-AI-Edit-0.4.4-Windows.ico)。Mac Finder 可能将 EXE 显示为通用文件图标，以 Windows 显示为准。
+
 首次打开且尚未保存 Key 时自动进入设置页：**获取 API Key → 保存 → 检查连接并同步模型 → 返回改图**。检查连接不提交付费生图；设置页显示各步完成状态，并提供注册链接。实际生成使用平台额度。
 
 任务核对区改为独立确认行，复选标记与文字同排，长文字自然换行；恢复结果与结束记录按钮另起一行，避免原生复选框把说明挤到按钮上。
