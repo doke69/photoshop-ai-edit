@@ -69,7 +69,7 @@ internal static class Installer {
         Find<Button>("UninstallTab").Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(remove ? "#343C47" : "#171D24"));
         Find<TextBlock>("Heading").Text = remove ? "移除插件，保留你的数据。" : "把 AI 带进你的工作流。";
         Find<TextBlock>("Subtitle").Text = remove ? "仅移除本插件，其他插件和私有数据保持不变。" : "安装到当前用户，无需管理员权限或开发工具。";
-        Find<TextBlock>("StepTwo").Text = remove ? "02   备份文件，移除插件登记" : "02   一键安装，保留你的数据";
+        Find<TextBlock>("StepTwo").Text = remove ? "备份文件，移除插件登记" : "一键安装，保留你的数据";
         Find<Button>("Primary").Content = remove ? "卸载插件（保留数据）" : "安装 AI 局部改图  →";
         Find<StackPanel>("Steps").Visibility = Visibility.Visible;
         Find<ScrollViewer>("ResultPanel").Visibility = Visibility.Collapsed;
