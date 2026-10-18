@@ -56,8 +56,10 @@ internal static class Installer {
                         timer.Stop();
                         try {
                             var visual = (FrameworkElement)window.Content;
-                            var bitmap = new RenderTargetBitmap((int)Math.Ceiling(visual.ActualWidth * previewScale), (int)Math.Ceiling(visual.ActualHeight * previewScale), 96 * previewScale, 96 * previewScale, PixelFormats.Pbgra32);
-                            bitmap.Render(visual); var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                            var bitmap = new RenderTargetBitmap((int)Math.Ceiling(window.ActualWidth * previewScale), (int)Math.Ceiling(window.ActualHeight * previewScale), 96 * previewScale, 96 * previewScale, PixelFormats.Pbgra32);
+                            bitmap.Render(window);
+                            var content = new CroppedBitmap(bitmap, new Int32Rect(0, 0, Math.Min(bitmap.PixelWidth, (int)Math.Ceiling(visual.ActualWidth * previewScale)), Math.Min(bitmap.PixelHeight, (int)Math.Ceiling(visual.ActualHeight * previewScale))));
+                            var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(content));
                             using (var output = File.Create(Path.GetFullPath(args[1]))) encoder.Save(output);
                         } finally { window.Close(); }
                     }; timer.Start();
