@@ -13,7 +13,7 @@ from zipfile import ZipFile, ZIP_DEFLATED
 
 root = Path(__file__).resolve().parent.parent
 plugin = root / 'plugin'
-manifest = json.loads((plugin / 'manifest.json').read_text())
+manifest = json.loads((plugin / 'manifest.json').read_text(encoding='utf-8'))
 version = manifest['version']
 dist = root / 'dist'
 dist.mkdir(exist_ok=True)
@@ -32,7 +32,7 @@ def copy_plugin(destination):
     shutil.copytree(plugin, destination, ignore=shutil.ignore_patterns('.uxprc', '.DS_Store'))
 
 def render_guide():
-    guide = (root / 'installer/guide.html').read_text().replace('{{VERSION}}', version)
+    guide = (root / 'installer/guide.html').read_text(encoding='utf-8').replace('{{VERSION}}', version)
     images = {
         'ICON_DATA': ('image/png', root / 'assets/branding/app-icon.png'),
         'SHOT_ENTRY': ('image/jpeg', root / 'assets/guide/site-api-entry.jpg'),
