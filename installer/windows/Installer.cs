@@ -17,6 +17,7 @@ internal static class Installer {
     static Window window;
     static string work;
     static bool busy, uninstall, success, preview;
+    static double previewScale = 1;
     static string diagnostic = "";
     static T Find<T>(string name) where T : class { return window.FindName(name) as T; }
     static Stream Resource(string name) { return Assembly.GetExecutingAssembly().GetManifestResourceStream(name); }
@@ -24,7 +25,10 @@ internal static class Installer {
         try {
             // Preview mode cannot invoke installation, open guides or access Adobe data.
             preview = args.Length > 0;
-            if (preview && (args.Length != 2 || args[0] != "--preview")) throw new ArgumentException("Usage: --preview output.png");
+            if (preview && (args.Length != 2 || args[0] != "--preview" && args[0] != "--preview-2x")) throw new ArgumentException("Usage: --preview output.png");
+            previewScale = args.Length > 0 && args[0] == "--preview-2x" ? 2 : 1;
+            AppContext.SetSwitch("Switch.System.Windows.DoNotScaleForDpiChanges", false);
+            AppContext.SetSwitch("Switch.System.Windows.DoNotUsePresentationDpiCapabilityTier2OrGreater", false);
             var app = new Application();
             using (var stream = Resource("Main.xaml")) window = (Window)XamlReader.Load(stream);
             using (var stream = Resource("Brand.png")) {
@@ -51,7 +55,7 @@ internal static class Installer {
                     timer.Tick += delegate {
                         timer.Stop();
                         try {
-                            var bitmap = new RenderTargetBitmap((int)window.ActualWidth, (int)window.ActualHeight, 96, 96, PixelFormats.Pbgra32);
+                            var bitmap = new RenderTargetBitmap((int)Math.Ceiling(window.ActualWidth * previewScale), (int)Math.Ceiling(window.ActualHeight * previewScale), 96 * previewScale, 96 * previewScale, PixelFormats.Pbgra32);
                             bitmap.Render(window); var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
                             using (var output = File.Create(Path.GetFullPath(args[1]))) encoder.Save(output);
                         } finally { window.Close(); }

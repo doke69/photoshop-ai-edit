@@ -9,7 +9,7 @@ New-Item -ItemType Directory -Path $work | Out-Null
 try {
     Add-Type -AssemblyName System.Drawing
     # ICO contains PNG frames at Windows shell sizes, using the same brand master.
-    $source = [Drawing.Image]::FromFile((Join-Path $root 'assets\branding\app-icon.png'))
+    $source = [Drawing.Image]::FromFile((Join-Path $root 'assets\branding\windows-installer.png'))
     $frames = @()
     try {
         foreach ($size in @(16,24,32,48,64,128,256)) {
@@ -18,6 +18,8 @@ try {
             $memory = New-Object IO.MemoryStream
             try {
                 $graphics.InterpolationMode = [Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+                $graphics.PixelOffsetMode = [Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+                $graphics.CompositingQuality = [Drawing.Drawing2D.CompositingQuality]::HighQuality
                 $graphics.DrawImage($source,0,0,$size,$size)
                 $bitmap.Save($memory,[Drawing.Imaging.ImageFormat]::Png)
                 $frames += [pscustomobject]@{ Size=$size; Bytes=$memory.ToArray() }
@@ -38,12 +40,12 @@ try {
         foreach ($frame in $frames) { $writer.Write([byte[]]$frame.Bytes) }
     } finally { $writer.Dispose() }
     $attributes = Join-Path $work 'Version.cs'
-    [IO.File]::WriteAllText($attributes,('[assembly: System.Reflection.AssemblyVersion("' + $version + '.0")][assembly: System.Reflection.AssemblyProduct("Photoshop AI Edit Installer")][assembly: System.Reflection.AssemblyTitle("Photoshop AI Edit")][assembly: System.Reflection.AssemblyDescription("Install, update or uninstall the Photoshop AI Edit plugin for the current user.")]'))
+    [IO.File]::WriteAllText($attributes,('[assembly: System.Runtime.Versioning.TargetFramework(".NETFramework,Version=v4.8", FrameworkDisplayName=".NET Framework 4.8")][assembly: System.Reflection.AssemblyVersion("' + $version + '.0")][assembly: System.Reflection.AssemblyProduct("Photoshop AI Edit Installer")][assembly: System.Reflection.AssemblyTitle("Photoshop AI Edit")][assembly: System.Reflection.AssemblyDescription("Install, update or uninstall the Photoshop AI Edit plugin for the current user.")]'))
     $framework = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319'
     $output = Join-Path $dist ('Photoshop-AI-Edit-' + $version + '-Windows-Setup.exe')
     $arguments = @('/nologo','/target:winexe','/platform:anycpu','/optimize+','/utf8output','/codepage:65001',('/out:'+$output),('/win32icon:'+$icon),('/win32manifest:'+(Join-Path $PSScriptRoot 'app.manifest')),
         ('/resource:'+(Join-Path $PSScriptRoot 'Main.xaml')+',Main.xaml'),
-        ('/resource:'+(Join-Path $root 'assets\branding\app-icon.png')+',Brand.png'),
+        ('/resource:'+(Join-Path $root 'assets\branding\windows-installer.png')+',Brand.png'),
         ('/resource:'+(Join-Path $dist 'windows-payload.zip')+',Payload.zip'))
     foreach ($reference in @('System.dll','System.Core.dll','System.Xaml.dll','System.IO.Compression.dll')) { $arguments += '/reference:'+(Join-Path $framework $reference) }
     foreach ($reference in @('WindowsBase.dll','PresentationCore.dll','PresentationFramework.dll')) { $arguments += '/reference:'+(Join-Path $framework ('WPF\'+$reference)) }

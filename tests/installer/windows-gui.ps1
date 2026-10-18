@@ -32,6 +32,15 @@ try {
     $preview=Start-Process -FilePath $exe -ArgumentList @('--preview',('"'+$shot+'"')) -PassThru
     if (-not $preview.WaitForExit(30000)) { $preview.Kill(); throw 'Preview timed out.' }
     if ($preview.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $shot)) { throw 'Preview failed.' }
+    $shot2x = Join-Path $root 'dist\windows-installer-preview-2x.png'
+    $preview2x=Start-Process -FilePath $exe -ArgumentList @('--preview-2x',('"'+$shot2x+'"')) -PassThru
+    if (-not $preview2x.WaitForExit(30000)) { $preview2x.Kill(); throw '2x preview timed out.' }
+    if ($preview2x.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $shot2x)) { throw '2x preview failed.' }
+    Add-Type -AssemblyName System.Drawing
+    $image1=[Drawing.Image]::FromFile($shot); $image2=[Drawing.Image]::FromFile($shot2x)
+    try {
+        if ($image2.Width -ne 2*$image1.Width -or $image2.Height -ne 2*$image1.Height) { throw 'High-resolution preview size mismatch.' }
+    } finally { $image1.Dispose(); $image2.Dispose() }
     if (Test-Path -LiteralPath (Join-Path $work 'Adobe')) { throw 'Preview touched Adobe directories.' }
     $process=Start-Process -FilePath $exe -PassThru
     for($i=0;$i -lt 100;$i++) {
@@ -61,7 +70,7 @@ try {
     # success label while a second asynchronous UI operation is starting.
     $process.CloseMainWindow() | Out-Null
     if (-not $process.WaitForExit(10000)) { throw 'Installer did not close.' }
-    $report='Windows Server 2022: graphical installer compiled; safe preview rendered; real EXE UI automation installed the embedded payload into isolated Chinese APPDATA; payload hashes matched; GUI uninstall passed. Repeat-uninstall and rollback passed in core fixtures. No Photoshop or paid API calls. Windows 10/11 user machine and Photoshop loading remain unverified.'
+    $report='Windows Server 2022: graphical installer compiled; safe 1x and 2x previews rendered; real EXE UI automation installed the embedded payload into isolated Chinese APPDATA; payload hashes matched; GUI uninstall passed. Repeat-uninstall and rollback passed in core fixtures. No Photoshop or paid API calls. Windows 10/11 user machine and Photoshop loading remain unverified.'
     [IO.File]::WriteAllText((Join-Path $root 'dist\windows-smoke-report.txt'),$report)
     Write-Host $report
 } finally {

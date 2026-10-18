@@ -44,7 +44,7 @@ jobs:
           path: |
             dist/*-Windows-Setup.exe
             dist/*-Windows-Setup.exe.sha256
-            dist/windows-installer-preview.png
+            dist/windows-installer-preview*.png
             dist/windows-smoke-report.txt
             dist/*-Windows.ico
             dist/windows*-exe-icon.png

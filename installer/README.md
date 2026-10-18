@@ -73,6 +73,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File installer/windows/build.ps1
 
 ### EXE 文件图标
 
-Windows EXE 通过 `/win32icon` 内嵌品牌 Logo，包含 16、24、32、48、64、128、256 像素；安装窗口也使用品牌图标。构建另外输出 `Photoshop-AI-Edit-<version>-Windows.ico`，可用于手动修改快捷方式图标。Mac Finder 不一定读取 Windows PE 内嵌图标，应以 Windows 资源管理器为准。
+Windows EXE 通过 `/win32icon` 从用户指定的 `assets/branding/windows-installer.png` 原图内嵌品牌 Logo，包含 16、24、32、48、64、128、256 像素；安装窗口也使用品牌图标。构建另外输出 `Photoshop-AI-Edit-<version>-Windows.ico`，可用于手动修改快捷方式图标。Mac Finder 不一定读取 Windows PE 内嵌图标，应以 Windows 资源管理器为准。
 
 `tests/installer/windows-icons.ps1` 调用 Windows Shell 原生接口从 EXE 提取 256 像素图标，并验证尺寸与品牌颜色，输出实际图标预览。手动运行 Windows workflow 时，可填写 `published_version`，额外下载并检查已经发布的 EXE；默认只检查本次构建，不依赖尚未发布的新版本。
+
+Windows 图形安装器的 Logo 使用完整 1254 像素原图，显示尺寸 144 DIP，采用高质量缩放与像素对齐。安装器声明 .NET Framework 4.8 和 Per-Monitor V2 DPI awareness，在不同缩放比例的显示器之间移动时允许重新缩放。安全预览同时导出 1x 与 2x 图片；2x 渲染不等同于在真实混合 DPI 显示器上测试。参考 [Microsoft 高分屏说明](https://learn.microsoft.com/en-us/dotnet/framework/whats-new) 与 [位图缩放模式](https://learn.microsoft.com/dotnet/api/system.windows.media.bitmapscalingmode)。
