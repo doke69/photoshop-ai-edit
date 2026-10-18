@@ -39,9 +39,9 @@
 
 ## 安装与卸载
 
-<img src="assets/readme/installer-v0.4.5.png" alt="Mac 安装与卸载向导" width="760">
+<img src="assets/readme/installer-v0.4.6.png" alt="Mac 安装与卸载向导" width="760">
 
-<img src="assets/readme/windows-installer-v0.4.5.png" alt="Windows 安装与卸载向导，实际 Windows 构建渲染" width="760">
+<img src="assets/readme/windows-installer-v0.4.6.png" alt="Windows 安装与卸载向导，实际 Windows 构建渲染" width="760">
 
 从 [v0.4.6 Releases](https://github.com/doke69/photoshop-ai-edit/releases/tag/v0.4.6) 下载对应平台文件：
 
@@ -55,7 +55,7 @@
 
 安装前保存文件并完全退出 Photoshop。安装器无需 Node.js、管理员权限或 UXP 开发工具；只更新当前用户的本插件，备份旧文件和插件登记，保留 API Key 与任务数据。备份位于 Adobe UXP 用户目录中的 `Plugins/.AIEditInstallerBackups`。安装包附带离线「安装与使用指南」，安装完成后可直接打开。Mac 安装器采用深色双栏界面与原创「选区 + 焕新」图标，提供安装 / 更新与卸载两个入口；Windows 使用同款深色双栏 EXE 安装器，内置插件和指南，无需解压，失败时可保存诊断记录；ZIP 中的 `Install.cmd` / `Uninstall.cmd` 仍可备用。卸载同样备份插件文件并保留 Key、历史和其他插件。
 
-[SHA256 校验文件](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.6/SHA256SUMS-v0.4.6.txt) 包含五种安装包及快捷方式 ICO 的校验值。Windows EXE 使用新版原图品牌 Logo，内嵌多尺寸图标；安装窗口启用高质量缩放与高分屏适配。需要手动设置快捷方式图标时，可下载 [Windows ICO](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.6/Photoshop-AI-Edit-0.4.6-Windows.ico)。Mac Finder 可能将 EXE 显示为通用文件图标，以 Windows 显示为准。
+[SHA256 校验文件](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.6/SHA256SUMS-v0.4.6.txt) 包含安装包、ICO 图标和离线指南的校验值。Windows EXE 使用新版原图品牌 Logo，内嵌多尺寸图标；安装窗口启用高质量缩放与高分屏适配。需要手动设置快捷方式图标时，可下载 [Windows ICO](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.6/Photoshop-AI-Edit-0.4.6-Windows.ico)。Mac Finder 可能将 EXE 显示为通用文件图标，以 Windows 显示为准。
 
 首次打开且尚未保存 Key 时自动进入设置页：**获取 API Key → 保存 → 检查连接并同步模型 → 返回改图**。检查连接不提交付费生图；设置页显示各步完成状态，并提供注册链接。实际生成使用平台额度。
 
