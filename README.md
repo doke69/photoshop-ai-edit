@@ -8,9 +8,9 @@
 
 框选区域，描述修改，生成结果，再回到 Photoshop 图层。
 
-**v0.4.7** · Photoshop 2024 / 25.0+ · macOS / Windows
+**v0.4.8** · Photoshop 2024 / 25.0+ · macOS / Windows
 
-[下载 Mac 安装包](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.7/Photoshop-AI-Edit-0.4.7-macOS-universal.dmg) · [下载 Windows 安装包](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.7/Photoshop-AI-Edit-0.4.7-Windows-Setup.exe) · [下载使用说明](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.7/Photoshop-AI-Edit-0.4.7-Guide.html)
+[下载 Mac 安装包](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.8/Photoshop-AI-Edit-0.4.8-macOS-universal.dmg) · [下载 Windows 安装包](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.8/Photoshop-AI-Edit-0.4.8-Windows-Setup.exe) · [下载使用说明](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.8/Photoshop-AI-Edit-0.4.8-Guide.html)
 
 </div>
 
@@ -39,9 +39,9 @@
 
 | 你的电脑 | 下载文件 | 打开方式 |
 | --- | --- | --- |
-| macOS · Apple Silicon / Intel | [DMG 通用安装包](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.7/Photoshop-AI-Edit-0.4.7-macOS-universal.dmg) | 双击挂载，再打开其中的 `Install Photoshop AI Edit.app` |
-| Windows | [EXE 图形安装包](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.7/Photoshop-AI-Edit-0.4.7-Windows-Setup.exe) | 双击打开，选择「安装 / 更新」 |
-| 两个平台通用 | [HTML 使用说明](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.7/Photoshop-AI-Edit-0.4.7-Guide.html) | 下载后用浏览器打开，包含 API 创建截图与首次打开帮助 |
+| macOS · Apple Silicon / Intel | [DMG 通用安装包](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.8/Photoshop-AI-Edit-0.4.8-macOS-universal.dmg) | 双击挂载，再打开其中的 `Install Photoshop AI Edit.app` |
+| Windows | [EXE 图形安装包](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.8/Photoshop-AI-Edit-0.4.8-Windows-Setup.exe) | 双击打开，选择「安装 / 更新」 |
+| 两个平台通用 | [HTML 使用说明](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.8/Photoshop-AI-Edit-0.4.8-Guide.html) | 下载后用浏览器打开，包含 API 创建截图与首次打开帮助 |
 
 <img src="assets/readme/installer-v0.4.7.png" alt="Mac 安装与卸载向导：安装、保留数据、API 设置及首次打开帮助" width="760">
 
@@ -115,7 +115,7 @@ Mac 已在隔离目录验证首次安装、升级备份、卸载、登记与私�
 
 **macOS**：在「系统设置 → 键盘 → 听写」中启用中文，聚焦修改要求后使用系统配置的听写快捷键。「听写帮助」按钮提供说明，目前没有 Mac 一键录音助手，也未接入云端语音识别 API。
 
-**Windows**：语音、标注和部分剪贴板／拖入辅助功能需要单独启动本机助手，安装器不捆绑该服务。安装 Node.js，下载并解压 [v0.4.7 源码](https://github.com/doke69/photoshop-ai-edit/archive/refs/tags/v0.4.7.zip)，在项目目录运行：
+**Windows**：语音、标注和部分剪贴板／拖入辅助功能需要单独启动本机助手，安装器不捆绑该服务。安装 Node.js，下载并解压 [v0.4.8 源码](https://github.com/doke69/photoshop-ai-edit/archive/refs/tags/v0.4.8.zip)，在项目目录运行：
 
 ```sh
 node scripts/voice-server.cjs
@@ -137,7 +137,7 @@ node scripts/voice-server.cjs
 
 ## 开发与许可
 
-安装包对应 [v0.4.7 标签源码](https://github.com/doke69/photoshop-ai-edit/tree/v0.4.7)；开发使用 [main 最新源码](https://github.com/doke69/photoshop-ai-edit/tree/main)。构建说明见 [installer/README.md](installer/README.md)。
+安装包对应 [v0.4.8 标签源码](https://github.com/doke69/photoshop-ai-edit/tree/v0.4.8)；开发使用 [main 最新源码](https://github.com/doke69/photoshop-ai-edit/tree/main)。构建说明见 [installer/README.md](installer/README.md)。
 
 <details>
 <summary>本地开发与验证命令</summary>
