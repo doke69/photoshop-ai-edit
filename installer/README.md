@@ -1,6 +1,6 @@
 # Photoshop AI Edit 专用安装器
 
-安装器只处理 `com.local.lk888.psedit`，采用当前用户目录侧载：无需 UXP 开发工具或 Node.js。Mac 使用 SwiftUI 双栏安装 / 卸载界面（由 AppKit 承载），Windows 使用 PowerShell 5.1 脚本与双击入口。安装包不包含用户密钥、任务历史或其他本机配置。
+安装器只处理 `com.local.lk888.psedit`，采用当前用户目录侧载：无需 UXP 开发工具或 Node.js。Mac 使用 SwiftUI 双栏安装 / 卸载界面（由 AppKit 承载），Windows 使用 WPF 图形界面、单文件 EXE 与 PowerShell 5.1 安装内核。安装包不包含用户密钥、任务历史或其他本机配置。
 
 ## 构建
 
@@ -41,7 +41,7 @@ Swift 检查在隔离临时目录中验证首次安装、同版本升级、其�
 
 ## 卸载
 
-Mac：打开 DMG 中的安装器，切换「卸载插件」。Windows：双击 `Uninstall.cmd`。卸载只移除本插件登记并将文件移到备份目录，保留插件安全存储与任务历史，支持重复执行。Mac 隔离目录检查覆盖卸载数据保留、其他插件保留、备份和登记失败回滚。
+Mac：打开 DMG 中的安装器，切换「卸载插件」。Windows：重新打开图形安装器，切换「卸载插件」；旧 ZIP 包可双击 `Uninstall.cmd`。卸载只移除本插件登记并将文件移到备份目录，保留插件安全存储与任务历史，支持重复执行。Mac 隔离目录检查覆盖卸载数据保留、其他插件保留、备份和登记失败回滚。
 
 应用图标源文件位于 `assets/branding/app-icon.png`，使用内置 imagegen 生成，提示词记录在 `assets/branding/PROMPT.md`。打包时生成 16–1024 像素的 ICNS，嵌入安装应用；DMG 卷使用 `assets/branding/mounted-disk.png` 的深蓝色品牌磁盘图标。
 
@@ -54,3 +54,19 @@ Mac：打开 DMG 中的安装器，切换「卸载插件」。Windows：双击 `
 ## 磁盘图标
 
 安装应用使用 AI Edit 方形 Logo；挂载到桌面的磁盘卷使用已审核的深蓝色品牌磁盘图标。图标来源与提示词见 `assets/branding/VOLUME-ICON.md`。已挂载的旧映像需推出后重新打开新版。
+
+## Windows 图形安装器
+
+在 Windows 10 / 11（.NET Framework 4.8、Windows PowerShell 5.1）运行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File installer/windows/build.ps1
+```
+
+构建输出 `dist/Photoshop-AI-Edit-<version>-Windows-Setup.exe` 与独立 SHA256 文件。EXE 内嵌插件、安装内核、品牌 Logo 和离线指南，运行时解压到随机临时目录，退出后清理，无需 Node.js、Python 或管理员权限。Python 仅是构建依赖。安装成功后可查看 API 指南；卸载保留 Key 和历史。失败时可另存本次操作的诊断记录，不读取密钥或任务内容。EXE 尚无代码签名，Windows 可能提示发布者未知。
+
+界面沿用 Mac 的深蓝品牌栏、操作切换和三步说明，支持键盘焦点；小屏幕会缩放完整界面，长错误可滚动。没有调用平台 API 的代码。
+
+`.github/workflows/windows-installer.yml` 在 Windows Server 2022 编译，并运行 `tests/installer/windows.ps1` 与 `windows-gui.ps1`。前者在临时目录覆盖中文路径、带 BOM 登记、首次安装、升级、元数据与其他插件保留、私有数据保留、安装及卸载回滚、重复卸载、异常登记和目标占用。后者启动最终 EXE，通过 Windows UI Automation 点击安装及卸载，并检查实际内嵌插件的文件哈希，另生成只读预览截图。`--preview <png>` 明确禁用安装及指南打开，也不访问 Adobe 目录。
+
+这些检查不等于 Windows 10 / 11 用户电脑上的 Photoshop 实机验证。Mac 的安装器及已发布 DMG 不受此更改影响。WPF 构建参考 [Microsoft 文档](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/app-development/building-a-wpf-application-wpf?view=netframeworkdesktop-4.8)，云端验证环境见 [GitHub 托管运行器](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)。

@@ -78,7 +78,8 @@ internal static class Installer {
         if (preview) throw new InvalidOperationException("Preview mode is read-only.");
         if (work != null) return;
         var destination = Path.Combine(Path.GetTempPath(), "Photoshop-AI-Edit-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(destination); work = destination;
+        Directory.CreateDirectory(destination);
+        try {
         using (var stream = Resource("Payload.zip"))
         using (var archive = new ZipArchive(stream, ZipArchiveMode.Read)) {
             foreach (var entry in archive.Entries) {
@@ -89,6 +90,8 @@ internal static class Installer {
                 using (var input = entry.Open()) using (var output = File.Create(target)) input.CopyTo(output);
             }
         }
+        work = destination;
+        } catch { try { Directory.Delete(destination, true); } catch { } throw; }
     }
     static async Task Run() {
         busy = true;

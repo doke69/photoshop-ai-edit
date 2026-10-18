@@ -7,7 +7,7 @@ function Invoke-AIEditChange {
         [switch]$Uninstall,
         [scriptblock]$RegistryWriter = {
             param($Temporary, $Destination)
-            if (Test-Path -LiteralPath $Destination) { [IO.File]::Replace($Temporary,$Destination,$null) }
+            if (Test-Path -LiteralPath $Destination) { [IO.File]::Replace($Temporary,$Destination,[System.Management.Automation.Language.NullString]::Value) }
             else { [IO.File]::Move($Temporary,$Destination) }
         }
     )
