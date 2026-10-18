@@ -25,7 +25,8 @@ internal static class Installer {
         try {
             // Preview mode cannot invoke installation, open guides or access Adobe data.
             preview = args.Length > 0;
-            if (preview && (args.Length != 2 || args[0] != "--preview" && args[0] != "--preview-2x")) throw new ArgumentException("Usage: --preview output.png");
+            if (preview && (args.Length != 2 || args[0] != "--preview" && args[0] != "--preview-2x" && args[0] != "--verify-guide")) throw new ArgumentException("Usage: --preview output.png");
+            if (preview && args[0] == "--verify-guide") { CopyGuideTo(Path.GetFullPath(args[1])); return 0; }
             previewScale = args.Length > 0 && args[0] == "--preview-2x" ? 2 : 1;
             AppContext.SetSwitch("Switch.System.Windows.DoNotScaleForDpiChanges", false);
             AppContext.SetSwitch("Switch.System.Windows.DoNotUsePresentationDpiCapabilityTier2OrGreater", false);
@@ -44,7 +45,7 @@ internal static class Installer {
             window.MinWidth = Math.Min(window.MinWidth, area.Width); window.MinHeight = Math.Min(window.MinHeight, area.Height);
             Find<Button>("InstallTab").Click += delegate { SetMode(false); };
             Find<Button>("UninstallTab").Click += delegate { SetMode(true); };
-            Find<Button>("Primary").Click += async delegate { if (!preview) { if (success) OpenGuide(); else await Run(); } };
+            Find<Button>("Primary").Click += async delegate { if (!preview) { if (success) { if (uninstall) window.Close(); else OpenGuide(); } else await Run(); } };
             Find<Button>("Guide").Click += delegate { if (!preview) OpenGuide(); };
             Find<Button>("SaveLog").Click += delegate { if (!preview) SaveLog(); };
             window.Closing += delegate(object sender, System.ComponentModel.CancelEventArgs e) { if (busy) e.Cancel = true; };
@@ -136,7 +137,7 @@ internal static class Installer {
             busy = false;
             foreach (var name in new[] { "InstallTab", "UninstallTab", "Primary", "Guide" }) Find<Button>(name).IsEnabled = true;
             Find<ProgressBar>("Progress").Visibility = Visibility.Collapsed;
-            Find<Button>("Primary").Content = success ? "查看 API 设置与使用指南  ↗" : "重试";
+            Find<Button>("Primary").Content = success ? (uninstall ? "完成" : "查看 API 设置与使用指南  ↗") : "重试";
         }
     }
     static void ShowResult(string title, string body, bool error) {
@@ -147,9 +148,29 @@ internal static class Installer {
         Find<TextBlock>("ResultBody").Text = body;
         Find<Button>("SaveLog").Visibility = error ? Visibility.Visible : Visibility.Collapsed;
     }
+    // The browser can load after this process exits; never hand it a file
+    // inside the temporary payload directory that Main's finally deletes.
+    static void CopyGuideTo(string target) {
+        Directory.CreateDirectory(Path.GetDirectoryName(target));
+        var temporary = target + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try {
+            using (var stream = Resource("Payload.zip"))
+            using (var archive = new ZipArchive(stream, ZipArchiveMode.Read)) {
+                var entry = archive.GetEntry("安装与使用指南.html");
+                if (entry == null || entry.Length == 0) throw new IOException("安装包内缺少使用指南，请重新下载。");
+                using (var input = entry.Open()) using (var output = File.Create(temporary)) input.CopyTo(output);
+            }
+            if (File.Exists(target)) File.Replace(temporary, target, null); else File.Move(temporary, target);
+        } finally { if (File.Exists(temporary)) File.Delete(temporary); }
+    }
     static void OpenGuide() {
-        try { Prepare(); Process.Start(new ProcessStartInfo(Path.Combine(work, "安装与使用指南.html")) { UseShellExecute = true }); }
-        catch (Exception e) { MessageBox.Show(e.Message, "无法打开指南"); }
+        string target = null;
+        try {
+            var version = Assembly.GetExecutingAssembly().GetName().Version.ToString(3);
+            target = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Photoshop AI Edit", "Guides", version, "index.html");
+            CopyGuideTo(target);
+            Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
+        } catch (Exception e) { MessageBox.Show(e.Message + (target != null && File.Exists(target) ? "\n\n指南已保存，可使用浏览器手动打开：\n" + target : "\n请下载 Releases 中的 HTML 使用说明。"), "无法打开指南"); }
     }
     static void SaveLog() {
         var dialog = new SaveFileDialog { FileName = "AI-Edit-installer-diagnostic.txt", Filter = "Text files|*.txt" };

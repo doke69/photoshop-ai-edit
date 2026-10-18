@@ -81,6 +81,11 @@ def build_installers():
         alpha_check = work / 'check-icon-alpha'
         subprocess.run(['xcrun', 'swiftc', '-module-cache-path', str(work / 'swift-cache'),
                         str(root / 'tests/installer/icon-alpha.swift'), '-o', str(alpha_check)], check=True)
+        guide_check = work / 'check-guide'
+        subprocess.run(['xcrun', 'swiftc', '-module-cache-path', str(work / 'swift-cache'),
+                        str(root / 'installer/macos/InstallerCore.swift'), str(root / 'installer/macos/GuideSupport.swift'),
+                        str(root / 'tests/installer/guide/main.swift'), '-o', str(guide_check)], check=True)
+        subprocess.run([str(guide_check)], check=True)
         copy_plugin(resources / 'plugin')
         (resources / '安装与使用指南.html').write_text(guide)
         shutil.copy2(root / 'assets/branding/app-icon.png', resources / 'AppIcon.png')
@@ -98,7 +103,7 @@ def build_installers():
             binary = work / ('installer-' + architecture)
             subprocess.run(['xcrun', 'swiftc', '-O', '-module-cache-path', str(work / 'swift-cache'),
                             '-target', architecture + '-apple-macos12.0',
-                            str(root / 'installer/macos/InstallerCore.swift'), str(root / 'installer/macos/main.swift'),
+                            str(root / 'installer/macos/InstallerCore.swift'), str(root / 'installer/macos/GuideSupport.swift'), str(root / 'installer/macos/main.swift'),
                             '-o', str(binary)], check=True)
             slices.append(str(binary))
         executable = binaries / 'AIEditInstaller'
