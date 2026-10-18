@@ -112,7 +112,7 @@ def build_installers():
         image_root.mkdir()
         shutil.copytree(app, image_root / app.name)
         (image_root / '安装与使用指南.html').write_text(guide)
-        (image_root / '请先阅读.txt').write_text('Photoshop AI Edit 安装与卸载\n\n双击 Install Photoshop AI Edit.app，选择安装 / 更新或卸载插件。\n这是 Photoshop 插件安装器，无需拖入 Applications。\n操作前保存文件并完全退出 Photoshop。卸载保留 API Key 和任务历史。\n\n支持 Photoshop 25.0（2024）及以上；Apple Silicon / Intel 通用。\n安装器未取得 Apple 开发者签名或公证，若系统阻止打开，可改用 CCX 与 OpenUXP。\n')
+        (image_root / '请先阅读.txt').write_text('Photoshop AI Edit 安装与卸载\n\n双击 Install Photoshop AI Edit.app，选择安装 / 更新或卸载插件。\n这是 Photoshop 插件安装器，无需拖入 Applications。\n操作前保存文件并完全退出 Photoshop。卸载保留 API Key 和任务历史。\n\n支持 Photoshop 25.0（2024）及以上；Apple Silicon / Intel 通用。\n安装器尚未取得 Apple 开发者签名或公证。若提示无法验证开发者，先尝试打开一次，再到系统设置 → 隐私与安全性 → 安全性 → 仍要打开，确认后打开。仅对可信且完整的本项目安装器执行；如提示恶意软件或文件损坏，请停止并核对文件。完整步骤见同目录「安装与使用指南.html」的首次打开帮助，也可使用同版本 CCX 与 OpenUXP。\n')
         dmg = dist / f'Photoshop-AI-Edit-{version}-macOS-universal.dmg'
         icon_helper = work / 'set-file-icon'
         subprocess.run(['xcrun', 'swiftc', '-module-cache-path', str(work / 'swift-cache'), str(root / 'installer/macos/SetFileIcon.swift'), '-o', str(icon_helper)], check=True)

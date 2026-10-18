@@ -77,6 +77,8 @@ internal static class Installer {
         Find<TextBlock>("Heading").Text = remove ? "移除插件，保留你的数据。" : "把 AI 带进你的工作流。";
         Find<TextBlock>("Subtitle").Text = remove ? "仅移除本插件，其他插件和私有数据保持不变。" : "安装到当前用户，无需管理员权限或开发工具。";
         Find<TextBlock>("StepTwo").Text = remove ? "备份文件，移除插件登记" : "一键安装，保留你的数据";
+        Find<TextBlock>("StepThree").Text = remove ? "重新安装可继续使用" : "按引导完成 API 设置";
+        Find<TextBlock>("StepThreeDetail").Text = remove ? "重新打开 Photoshop 后，卸载即可生效" : "检查连接不会提交付费生图任务";
         Find<Button>("Primary").Content = remove ? "卸载插件（保留数据）" : "安装 AI 局部改图  →";
         Find<StackPanel>("Steps").Visibility = Visibility.Visible;
         Find<ScrollViewer>("ResultPanel").Visibility = Visibility.Collapsed;

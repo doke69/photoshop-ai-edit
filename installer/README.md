@@ -85,3 +85,9 @@ Mac 与 Windows 共用已抠除外背景的透明圆角 PNG；Windows 图形安�
 v0.4.5 / v0.4.6 已撤回为草稿，公开稳定版仍为 v0.4.4。当前开发构建统一使用 `assets/branding/app-icon.png` 的透明抠图，不再将原图外侧的深色矩形一起打包，也不依赖 UI 裁切冒充透明文件。
 
 Mac：`tests/installer/icon-alpha.swift` 检查 PNG、ICNS 各位图表示和系统读取的应用图标。安装器的 `--preview-app-icon <png>` 只读导出实际设置给 `NSApplication.applicationIconImage` 的图像；这个诊断入口禁用安装。Windows：构建时拒绝角落不透明的母版；`windows-icons.ps1` 通过 Windows Shell 从最终 EXE 读取 16–256 px 图标，检查外沿、圆角、中心和品牌颜色。白色、深色、棋盘背景上的视觉检查与 alpha 数值检查同时使用。
+
+### 首次打开帮助与布局
+
+Mac 向导底部的「首次打开帮助」定位到离线指南 `#first-open`；DMG 同时附带可独立打开的 HTML 与文本说明。Windows 向导的「使用 / 打开帮助」打开内嵌的同一份指南，Release 也提供独立 HTML，方便 EXE 启动前查看。按 Apple / Microsoft 官方文档说明单个文件的打开流程，不修改系统安全设置或自动移除隔离属性。
+
+Mac 窗口为 760 × 500 点，品牌栏 230 点；Windows 为 800 × 574 DIP（包含系统标题栏），品牌栏 240 DIP。统一信息层级、较紧凑的步骤间距及页脚帮助入口，透明图标素材保持不变。

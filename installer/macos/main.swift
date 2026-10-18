@@ -37,7 +37,12 @@ final class InstallState: ObservableObject {
             }
         }
     }
-    func guide() { if !preview { NSWorkspace.shared.open(resources.appendingPathComponent("安装与使用指南.html")) } }
+    func guide(anchor: String? = nil) {
+        guard !preview else { return }
+        var url = URLComponents(url: resources.appendingPathComponent("安装与使用指南.html"), resolvingAgainstBaseURL: false)!
+        url.fragment = anchor
+        if let target = url.url { NSWorkspace.shared.open(target) }
+    }
 }
 
 struct InstallerView: View {
@@ -61,16 +66,17 @@ struct InstallerView: View {
         HStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 0) {
                 if let logo = NSImage(contentsOf: state.resources.appendingPathComponent("AppIcon.png")) {
-                    Image(nsImage: logo).resizable().interpolation(.high).frame(width: 96, height: 96).shadow(color: .black.opacity(0.3), radius: 20, y: 8)
+                    Image(nsImage: logo).resizable().interpolation(.high).frame(width: 112, height: 112).shadow(color: .black.opacity(0.3), radius: 20, y: 8)
                 }
-                Text("PHOTOSHOP").font(.system(size: 10, weight: .bold)).tracking(2.5).foregroundColor(accent).padding(.top, 24)
-                Text("AI Edit").font(.system(size: 39, weight: .bold)).tracking(-1).foregroundColor(.white).padding(.top, 6)
-                Text("只改你想改的地方。") .font(.system(size: 15, weight: .medium)).foregroundColor(Color.white.opacity(0.78)).padding(.top, 12)
+                Text("PHOTOSHOP").font(.system(size: 10, weight: .bold)).tracking(2.5).foregroundColor(accent).padding(.top, 20)
+                Text("AI Edit").font(.system(size: 35, weight: .bold)).tracking(-1).foregroundColor(.white).padding(.top, 6)
+                Text("只改你想改的地方。") .font(.system(size: 14, weight: .medium)).foregroundColor(Color.white.opacity(0.78)).padding(.top, 12)
                 Text("框选 · 描述 · 生成 · 回填图层").font(.system(size: 11)).foregroundColor(Color.white.opacity(0.4)).padding(.top, 9)
                 Spacer()
+                Text("Photoshop 2024 / 25.0+").font(.system(size: 10)).foregroundColor(Color.white.opacity(0.4)).padding(.bottom, 8)
                 HStack(spacing: 6) { Circle().fill(Color(red: 0.4, green: 0.85, blue: 0.72)).frame(width: 5, height: 5); Text("macOS 通用版 · v" + state.version).font(.system(size: 10)).foregroundColor(Color.white.opacity(0.5)) }
             }
-            .padding(.horizontal, 30).padding(.top, 58).padding(.bottom, 30).frame(width: 270)
+            .padding(.horizontal, 26).padding(.top, 64).padding(.bottom, 24).frame(width: 230)
             .background(LinearGradient(colors: [Color(red: 0.08, green: 0.15, blue: 0.24), Color(red: 0.05, green: 0.08, blue: 0.13)], startPoint: .topLeading, endPoint: .bottomTrailing))
             Rectangle().fill(Color.white.opacity(0.07)).frame(width: 1)
             VStack(alignment: .leading, spacing: 0) {
@@ -91,7 +97,7 @@ struct InstallerView: View {
                         }
                     }.padding(3).background(Color.black.opacity(0.18)).cornerRadius(8).padding(.top, 20)
                 }
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 16) {
                     if removing {
                         step("01", success ? "插件文件已移除" : "保存文件，退出 Photoshop", success ? "下次启动 Photoshop 后生效" : "卸载前请完全退出，以免文件仍被占用")
                         step("02", "API Key 与历史数据保留", "重新安装后，可继续使用原来的配置与记录")
@@ -105,8 +111,14 @@ struct InstallerView: View {
                         step("02", "一键安装，保留你的数据", "旧版文件自动备份，保留 Key 与任务历史")
                         step("03", "按引导完成 API 设置", "检查连接不会提交付费生图任务")
                     }
-                }.padding(.top, 24)
-                Spacer(minLength: 16)
+                }.padding(.top, 20)
+                Spacer(minLength: 18)
+                if !success && !working && state.phase != "error" {
+                    HStack(spacing: 6) {
+                        Image(systemName: "externaldrive.badge.checkmark")
+                        Text("仅安装插件 · 自动备份旧版本")
+                    }.font(.system(size: 10)).foregroundColor(Color.white.opacity(0.48)).padding(.bottom, 12)
+                }
                 if state.phase == "error" {
                     HStack(alignment: .top, spacing: 8) { Image(systemName: "exclamationmark.circle"); Text(state.detail).fixedSize(horizontal: false, vertical: true) }
                         .font(.system(size: 11)).foregroundColor(Color(red: 1, green: 0.73, blue: 0.58)).padding(10).frame(maxWidth: .infinity, alignment: .leading).background(Color.orange.opacity(0.08)).cornerRadius(8).padding(.bottom, 12)
@@ -119,13 +131,13 @@ struct InstallerView: View {
                     .foregroundColor(.white).frame(height: 42).background((removing && !success ? Color(red: 0.66, green: 0.27, blue: 0.25) : Color(red: 0.16, green: 0.45, blue: 0.92))).cornerRadius(10)
                 }.buttonStyle(.plain).disabled(working)
                 HStack {
-                    Text("Photoshop 2024 / 25.0 及以上").font(.system(size: 10)).foregroundColor(Color.white.opacity(0.35))
+                    Button("首次打开帮助 ↗") { state.guide(anchor: "first-open") }.buttonStyle(.plain).font(.system(size: 10)).foregroundColor(accent).disabled(working)
                     Spacer()
                     Button(success ? "完成" : "稍后操作") { if !state.preview { NSApp.terminate(nil) } }.buttonStyle(.plain).font(.system(size: 11)).foregroundColor(Color.white.opacity(0.55)).disabled(working)
-                }.padding(.top, 14)
-            }.padding(.horizontal, 30).padding(.top, 49).padding(.bottom, 28).frame(maxWidth: .infinity)
+                }.padding(.top, 12)
+            }.padding(.horizontal, 28).padding(.top, 38).padding(.bottom, 24).frame(maxWidth: .infinity)
              .background(Color(red: 0.075, green: 0.085, blue: 0.105))
-        }.frame(width: 760, height: 540).preferredColorScheme(.dark)
+        }.frame(width: 760, height: 500).preferredColorScheme(.dark)
     }
 }
 
@@ -157,7 +169,7 @@ if preview, arguments.contains("--preview-uninstall") { state.operation = "unins
 if preview, arguments.contains("--preview-complete") { state.phase = "success" }
 if preview, arguments.contains("--preview-error") { state.phase = "error"; state.detail = "请保存文件并完全退出 Photoshop，然后点击重试。" }
 let hosting = NSHostingView(rootView: InstallerView(state: state))
-let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 760, height: 540), styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView], backing: .buffered, defer: false)
+let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 760, height: 500), styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView], backing: .buffered, defer: false)
 window.title = "Photoshop AI Edit"
 window.titleVisibility = .hidden; window.titlebarAppearsTransparent = true
 window.appearance = NSAppearance(named: .darkAqua)

@@ -63,6 +63,15 @@ Windows EXE 已内嵌多尺寸品牌图标。需要手动设置快捷方式图�
 
 **验证范围：**安装逻辑已在 Mac 隔离目录验证首次安装、升级备份、登记保留、私有数据保留与异常保护；Windows 图形安装器在 Windows Server 2022 的隔离目录验证安装、升级、卸载、回滚和最终 EXE 界面操作；Windows 10 / 11 用户电脑与真实 Photoshop 加载仍待验证。Windows EXE 需要 .NET Framework 4.8、Windows PowerShell 5.1，尚无代码签名，可能提示发布者未知。Mac 安装器为临时签名，未取得 Apple 开发者签名 / 公证，系统可能要求手动授权或阻止打开；可使用 CCX + OpenUXP 作为备用方式。挂载磁盘使用深蓝色品牌磁盘图标；若桌面仍显示旧图标，先推出旧映像，再打开新版 DMG。
 
+### 首次打开遇到系统提示
+
+仅对从本项目 Releases 下载、确认完整且可信的文件继续操作。
+
+- **Mac 提示无法验证开发者：**先尝试打开安装器一次，再到「系统设置 → 隐私与安全性 → 安全性」点击「仍要打开」，按提示确认身份并点击「打开」。[Apple 官方说明](https://support.apple.com/zh-cn/102445)
+- **Windows 提示已保护你的电脑：**点击「更多信息」，核对文件后选择「仍要运行」。如果单位策略或智能应用控制没有提供此选项，请联系管理员或使用 CCX / OpenUXP。[Microsoft 官方说明](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/smartscreen-reputation)
+
+如果系统提示恶意软件或文件已损坏，请停止并核对下载文件，不要关闭系统安全保护。新版离线指南同时包含分平台操作步骤，可在运行安装器前直接打开。
+
 ## 安装：使用 OpenUXP
 
 1. 从 [Releases](https://github.com/doke69/photoshop-ai-edit/releases/latest) 下载 **`photoshop-ai-edit-LK888-0.4.4.ccx`**。自动生成的 Source code 压缩包是源码，不是直接安装包。
