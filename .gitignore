@@ -14,3 +14,8 @@ Thumbs.db
 diagnostics/
 # Generated previews, checksums and installers belong in Releases, not source
 dist/
+
+# Local design iterations and Python caches
+assets/branding/drafts/
+__pycache__/
+*.py[cod]

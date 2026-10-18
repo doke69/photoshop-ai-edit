@@ -1,0 +1,56 @@
+# Photoshop AI Edit 专用安装器
+
+安装器只处理 `com.local.lk888.psedit`，采用当前用户目录侧载：无需 UXP 开发工具或 Node.js。Mac 使用 SwiftUI 双栏安装 / 卸载界面（由 AppKit 承载），Windows 使用 PowerShell 5.1 脚本与双击入口。安装包不包含用户密钥、任务历史或其他本机配置。
+
+## 构建
+
+在 macOS 安装 Xcode 命令行工具后，从项目根目录运行：
+
+```sh
+python3 scripts/package.py --installers
+```
+
+输出到 `dist/`：CCX、Mac universal DMG 与安装器 ZIP、Windows 安装包 ZIP、离线 HTML 指南、SHA256 校验文件。Mac 安装器仅作临时签名，没有 Apple Developer ID 签名与公证。Windows 包内 PowerShell 使用 UTF-8 BOM，脚本入口使用 CRLF，兼容 Windows PowerShell 的中文路径读取。
+
+## 安装策略
+
+- 安装前要求 Photoshop 完全退出。
+- 读取并校验捆绑清单，只安装本插件。
+- 使用 `Adobe/UXP/Plugins/External/<id>_<version>`；登记文件为 `PluginsInfo/v1/PS.json`。
+- Windows 登记路径使用 `$localPlugins\External\<id>_<version>`，Mac 使用正斜杠。
+- 安装前测试目录是否可写；暂存复制后复核清单；更新登记时保留其他插件与未知字段。
+- 本插件旧目录及旧登记备份到 `Plugins/.AIEditInstallerBackups`。发生写入失败时恢复旧登记与旧目录。
+- 不访问 `PluginsStorage`、安全存储或 API；安装成功后可打开离线指南。
+- 侧载插件由此安装器管理，不会变成 Creative Cloud 管理的官方安装。无法侧载时使用同版本 CCX 与 OpenUXP。
+
+## OpenUXP 对照记录
+
+用户要求参考 OpenUXP；核对了 [yArna/OpenUPX-Installer](https://github.com/yArna/OpenUPX-Installer) 的 [src-tauri/src/lib.rs](https://github.com/yArna/OpenUPX-Installer/blob/52769f091548f8b2384f96dafcc0a838b0cc10a3/src-tauri/src/lib.rs)，提交 `52769f091548f8b2384f96dafcc0a838b0cc10a3`。
+
+对照范围：`build_sideload_preflight`、`prepare_registry_update`、`sideload_ccx` 的目录、登记字段、平台路径、暂存复核和回滚流程。本安装器以 Swift / PowerShell 独立实现，不捆绑或复制其 Rust / Tauri 源码；不包含通用 CCX 解压、其他 Adobe 宿主、CEP 支持或 UPIA 官方安装功能。
+
+## 验证
+
+```sh
+node --test tests/*.test.cjs
+xcrun swiftc -module-cache-path /private/tmp/ps-edit-swift-cache installer/macos/InstallerCore.swift tests/installer/main.swift -o /private/tmp/ps-edit-installer-tests
+/private/tmp/ps-edit-installer-tests
+```
+
+Swift 检查在隔离临时目录中验证首次安装、同版本升级、其他插件登记及私有数据保留、写入失败回滚、损坏登记保护、目标占用保护；不会写入真实 Adobe 用户目录。Mac 安装界面、真实 Photoshop 加载与 Windows 安装仍需实机验证，不将构建成功等同于安装验证通过。
+
+## 卸载
+
+Mac：打开 DMG 中的安装器，切换「卸载插件」。Windows：双击 `Uninstall.cmd`。卸载只移除本插件登记并将文件移到备份目录，保留插件安全存储与任务历史，支持重复执行。Mac 隔离目录检查覆盖卸载数据保留、其他插件保留、备份和登记失败回滚。
+
+应用图标源文件位于 `assets/branding/app-icon.png`，使用内置 imagegen 生成，提示词记录在 `assets/branding/PROMPT.md`。打包时生成 16–1024 像素的 ICNS，嵌入安装应用；DMG 卷使用 `assets/branding/mounted-disk.png` 的深蓝色品牌磁盘图标。
+
+## 图标与离线指南更新
+
+图标母版为 1024 × 1024，背景铺满画布，不嵌套小底板；使用原生 `iconutil` 输出 ICNS，配置到应用清单并在启动时设置应用图标。磁盘卷采用深蓝色磁盘外形、品牌图形直接位于正面的设计；独立方形 Logo 用于安装应用。先设置可写卷图标，再压缩为 DMG，确保挂载图标随安装包分发。本地 DMG 文件也设置同款自定义图标；文件扩展属性在普通 HTTP 下载后可能丢失，但卷内图标始终保留。
+
+离线 HTML 指南内嵌 Logo，无需联网加载图片；重新分为四步操作与维护 FAQ。GPT2.5 价格优先参考价按维护者确认的人民币 ¥0.025 / 张标注，注明信息日期及平台实际计费规则；不改写插件模型 ID、默认参数或请求路由。
+
+## 磁盘图标
+
+安装应用使用 AI Edit 方形 Logo；挂载到桌面的磁盘卷使用已审核的深蓝色品牌磁盘图标。图标来源与提示词见 `assets/branding/VOLUME-ICON.md`。已挂载的旧映像需推出后重新打开新版。

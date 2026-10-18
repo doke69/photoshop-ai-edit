@@ -14,3 +14,13 @@ function bindButton(node){
 function createUiButton(document){const node=document.createElement('div');node.className='ui-button';return bindButton(node);}
 function initButtons(document){document.querySelectorAll('[data-ui-button]').forEach(bindButton);}
 module.exports={setButtonDisabled,createUiButton,initButtons};
+
+const checkStates=new Map();
+function setChecked(node,checked,mark){checkStates.set(node.id,!!checked);node.setAttribute('aria-checked',String(!!checked));if(mark)mark.textContent=checked?'✓':'';}
+function readChecked(node){return checkStates.get(node.id)===true;}
+function bindCheckbox(node,mark){
+ setChecked(node,false,mark);
+ const toggle=()=>{if(!node.disabled)setChecked(node,!readChecked(node),mark);};
+ node.addEventListener('click',toggle);node.addEventListener('keydown',event=>{if(event.target!==node||event.repeat||event.altKey||event.ctrlKey||event.metaKey)return;if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();toggle();}});
+}
+module.exports.setChecked=setChecked;module.exports.readChecked=readChecked;module.exports.bindCheckbox=bindCheckbox;

@@ -5,9 +5,9 @@ const { test } = require('node:test');
 const api = require('../plugin/api');
 const {TaskQueue}=require('../plugin/task-queue');const {pngRGBA}=require('../plugin/png');
 
-function harness({ switchDocument = false, reopenSameDocument = false, reopenPathless = false, submissionFails = false, shrinkUpload = false, apiModels = null, modelSyncFails = false, balanceGate = null, balanceFails = false, nativeDropdownValue = false, savedLocal = [] } = {}) {
+function harness({ switchDocument = false, reopenSameDocument = false, reopenPathless = false, submissionFails = false, shrinkUpload = false, apiModels = null, modelSyncFails = false, balanceGate = null, balanceFails = false, nativeDropdownValue = false, missingKey = false, savedLocal = [] } = {}) {
   const apiCalls=[];let notification; const action={addNotificationListener:async(_events,listener)=>{notification=listener;}};
-  const nodes = {}, local = new Map(savedLocal), calls = [], writes = [], requests = [], reads = [], docEvents = {}, helperCalls=[];let reloads=0, imageDecodes=0,secureKey='test-key';
+  const nodes = {}, local = new Map(savedLocal), calls = [], writes = [], requests = [], reads = [], docEvents = {}, helperCalls=[];let reloads=0, imageDecodes=0,secureKey=missingKey?'':'test-key';
   function makeNode(id='') { const node={id,value:id==='prompt'?'改成红色':id==='model'?'banana-2':'',textContent:'',hidden:false,style:{},children:[],attributes:{},className:'',classList:{add(){},remove(){}},addEventListener(event,fn){this[event]=fn;},setAttribute(name,value){this.attributes[name]=value;},removeAttribute(name){delete this.attributes[name];},append(...items){for(const item of items)this.appendChild(item);},appendChild(item){item.parentNode=this;this.children.push(item);if(item.id.startsWith('model-param-'))nodes[item.id]=item;},removeChild(item){this.children=this.children.filter(child=>child!==item);item.parentNode=null;},focus(){document.activeElement=this;},replaceChildren(...items){this.children=[];this.append(...items);},get parentElement(){return makeNode('parent');}};Object.defineProperty(node,'innerHTML',{get(){return '';},set(value){if(value==='')this.children=[];}});if(['model','quality','output-size','count','model-filter'].includes(id)){
    if(['count','model-filter'].includes(id)){const menu={children:(id==='count'?['1','2','3','4']:['image','favorites','all']).map(value=>{const item=makeNode('sp-menu-item');item.setAttribute('value',value);return item;})};node.children.push(menu);}
    let value=node.value;Object.defineProperty(node,'value',{get(){return nativeDropdownValue?(id==='model'?'banana-2':'stale display label'):(node.children[0]?.children?.[node.selectedIndex]?.attributes.value??value);},set(next){value=next;if(nativeDropdownValue)return;const options=node.children[0]?.children||[];const index=options.findIndex(n=>n.attributes.value===next);if(index>=0)node.selectedIndex=index;}});
@@ -349,4 +349,39 @@ test('changing model after submission preserves actual model history while savin
  const h=harness();await h.ready();await h.nodes.generate.click();await h.ready();const first=JSON.parse(h.local.get('lk888-jobs'))[0];
  h.select('model','banana-2.1');h.nodes.prompt.value='修改为蓝色';await h.nodes['reload-panel'].click();const saved=JSON.parse(h.local.get('lk888-jobs')).find(j=>j.id===first.id);
  assert.equal(saved.model,'banana-2');assert.equal(saved.prompt,'改成红色');assert.equal(saved.editor.model,'banana-2.1');assert.equal(saved.editor.prompt,'修改为蓝色');assert.equal(h.requests.length,1);
+});
+
+test('first launch opens API setup without network requests or generation',async()=>{
+ const h=harness({missingKey:true});await h.ready();
+ assert.equal(h.node('settings').hidden,false);assert.equal(h.node('editor').hidden,true);
+ assert.match(h.node('setup-status').textContent,/先获取 API Key/);
+ assert.equal(h.apiCalls.length,0);assert.equal(h.requests.length,0);
+ h.node('api-key').value='fixture-key';await h.node('save-key').click();
+ assert.match(h.node('setup-key-step').textContent,/^✓/);
+ assert.match(h.node('setup-status').textContent,/下一步点击「检查连接」/);
+ assert.equal(h.apiCalls.length,0);
+ await h.node('test-key').click();
+ assert.match(h.node('setup-check-step').textContent,/^✓/);
+ assert.match(h.node('setup-status').textContent,/设置完成/);
+ assert.equal(h.apiCalls.length,2);assert.equal(h.requests.length,0);
+ h.node('back-editor').click();assert.equal(h.node('settings').hidden,true);assert.equal(h.node('editor').hidden,false);
+});
+
+test('setup keeps sync recovery instructions when authentication works but models fail',async()=>{
+ const h=harness({modelSyncFails:true});await h.ready();await h.node('test-key').click();
+ assert.match(h.node('setup-status').textContent,/鉴权已通过.*同步尚未完成/);
+ assert.doesNotMatch(h.node('setup-check-step').textContent,/^✓/);
+ assert.equal(h.requests.length,0);
+});
+
+test('task reset requires the custom confirmation and clears it after completion',async()=>{
+ const h=harness();await h.ready();h.node('reset-job').click();
+ assert.match(h.node('status').textContent,/请先在平台确认/);
+ const confirm=h.node('reset-confirm');confirm.click();assert.equal(confirm.attributes['aria-checked'],'true');
+ h.node('reset-job').click();assert.equal(confirm.attributes['aria-checked'],'false');
+ assert.match(h.node('status').textContent,/已结束本机任务记录/);
+ let stopped=0;confirm.keydown({key:' ',target:confirm,preventDefault(){stopped++;},stopPropagation(){stopped++;}});
+ assert.equal(confirm.attributes['aria-checked'],'true');assert.equal(stopped,2);
+ confirm.keydown({key:' ',target:h.node('prompt'),preventDefault(){throw Error('intercepted typing');},stopPropagation(){}});
+ assert.equal(confirm.attributes['aria-checked'],'true');assert.equal(h.requests.length,0);
 });

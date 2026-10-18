@@ -1,4 +1,4 @@
-const {setButtonDisabled,createUiButton,initButtons}=require('./ui-controls');
+const {setButtonDisabled,createUiButton,initButtons,setChecked,readChecked,bindCheckbox}=require('./ui-controls');
 let hostPlatform='';try{hostPlatform=require('os').platform();}catch(_){}
 const { app, imaging, constants, action } = require('photoshop');
 const { storage, shell } = require('uxp');
@@ -92,8 +92,15 @@ function renderModelManager(){
  matches.slice(modelPage*20,(modelPage+1)*20).forEach(model=>{const row=document.createElement('div');row.className='model-entry';const choose=createUiButton(document);choose.setAttribute('quiet','');choose.className='ui-button model-choose';choose.textContent=(model.kind==='other'?'非图像 · ':['candidate','unknown'].includes(model.kind)?'待确认 · ':model.kind==='edit'&&model.evidence==='api'?'图像编辑 · ':model.evidence==='preset'?'预设 · ':'图像 · ')+model.label;choose.title=model.id+' · '+modelHint(model);choose.addEventListener('click',()=>{if(busy)return;renderModels(model.id);settingsPage(false);});const star=createUiButton(document);star.setAttribute('quiet','');star.textContent=favoriteModels.includes(model.id)?'★':'☆';star.title=(favoriteModels.includes(model.id)?'取消收藏 ':'收藏 ')+model.label;star.setAttribute('aria-label',star.title);star.addEventListener('click',()=>{if(!busy)toggleFavorite(model.id);});row.appendChild(choose);row.appendChild(star);root.appendChild(row);});
  $('browse-models').textContent='全部模型（'+modelList.length+'）';
 }
+let setupKeySaved=false,setupVerified=false,setupModelsReady=false;
+function renderSetupGuide(){
+ $('setup-key-step').textContent=(setupKeySaved?'✓ ':'1. ')+'获取并保存 API Key';
+ $('setup-check-step').textContent=(setupVerified&&setupModelsReady?'✓ ':'2. ')+'检查连接并同步模型';
+ $('setup-status').textContent=!setupKeySaved?'先获取 API Key，在下方粘贴并点击保存。密钥仅保存到本机。':!setupVerified?'密钥已保存。下一步点击「检查连接」，验证后自动同步模型，不会提交生图。':!setupModelsReady?'鉴权已通过，模型同步尚未完成；可点击「从 API 同步模型」重试。':'设置完成。点击「返回改图」，在 PS 框选后读取选区开始修改。';
+}
 function connectionStatus(state,{save=true,checkedAt=Date.now()}={}){
  const node=$('api-status'),labels={unknown:'尚未检测连接',checking:'正在检测 API…',success:'检测成功 · API 鉴权通过',error:'检测失败 · 请检查密钥或网络'};
+ if(save){setupVerified=state==='success';if(state==='checking')setupModelsReady=false;renderSetupGuide();}
  node.textContent=labels[state]+(['success','error'].includes(state)?' · '+new Date(checkedAt).toLocaleString():'');node.className='connection-status '+state;
  if(save&&['success','error'].includes(state)&&modelAccount)localStorage.setItem('lk888-connection:'+modelAccount,JSON.stringify({state,checkedAt}));
 }
@@ -119,6 +126,7 @@ async function syncModels({silent=false}={}){
   saveAccountData('lk888-model-catalog',{account,models,updatedAt:Date.now()});
   if(old&&!modelList.some(m=>m.id===selected))modelList.push({...old,available:false});
   renderModels(selected);
+  setupModelsReady=true;renderSetupGuide();
   $('models-status').textContent='已同步 '+models.length+' 个模型，其中 '+models.filter(m=>m.kind==='edit'&&m.evidence==='api').length+' 个支持图像编辑。按平台详情显示参数；密钥无可用渠道的模型会单独提示。'+(items.some(m=>m._detailFailed)?' 部分详情读取失败，保留公开参数快照或待确认状态。':'');
  }catch(error){if(token!==modelSyncToken)return;$('models-status').textContent='同步失败，保留缓存或内置预设。'+(error.message||'请检查连接。');if(!silent)throw error;}
 }
@@ -560,7 +568,7 @@ async function openDropWindow(){
 }
 
 async function init() {
-  if (initialized) return; initialized = true;initChoices(document);initButtons(document);
+  if (initialized) return; initialized = true;initChoices(document);initButtons(document);bindCheckbox($('reset-confirm'),$('reset-confirm-mark'));
   fillChoices('count',[1,2,3,4].map(n=>({value:String(n),label:n+'张'})),'1','1');
   fillChoices('model-filter',[{value:'all',label:'全部模型（图像优先）'},{value:'image',label:'仅图像候选'},{value:'favorites',label:'仅收藏'}],'all','all');
   if(hostPlatform!=='darwin'&&typeof navigator!=='undefined')voice.request('/health').then(data=>console.log('Local voice helper: '+data.state+' '+(data.language||''))).catch(()=>console.log('Local voice helper unavailable; start with the local launcher.'));
@@ -607,11 +615,13 @@ async function init() {
   $('back-editor').addEventListener('click', () => settingsPage(false));
   $('capture-selection').addEventListener('click', () => withBusy(readSelection));
   $('refresh-selection').addEventListener('click', () => withBusy(readSelection));
+  $('open-api-registration').addEventListener('click',async()=>{try{if(!shell?.openExternal)throw new Error('请在浏览器打开 README 中的 LK888 注册入口。');const result=await shell.openExternal('https://ac.lk888.ai?yonghu=UBOJB2UXX2V5ZFCU','打开 LK888 注册页面，获取你自己的 API Key。');if(result)throw new Error('浏览器未打开，请使用安装指南中的注册链接。');}catch(error){status(error.message||'无法打开浏览器，请查看安装指南。',true);}});
+  $('open-quickstart').addEventListener('click',()=>{status('1 获取并保存 Key；2 检查连接并同步模型；3 返回改图，在 PS 框选并读取；4 填写要求并生成。');});
   $('save-key').addEventListener('click', () => withApiBusy(async () => {
     const value = $('api-key').value.trim(); if (!value) throw new Error('请输入 API Key。');
-    await storage.secureStorage.setItem('lk888-key', value);++modelSyncToken;$('api-key').value='';modelList=normalizeModels(MODELS);favoriteModels=[];await loadModelCatalog();restoreConnectionStatus();renderModels();$('models-status').textContent='密钥已保存，可点击「从 API 同步模型」。';status('密钥已保存。');
+    await storage.secureStorage.setItem('lk888-key', value);setupKeySaved=true;setupVerified=false;setupModelsReady=false;renderSetupGuide();++modelSyncToken;$('api-key').value='';modelList=normalizeModels(MODELS);favoriteModels=[];await loadModelCatalog();restoreConnectionStatus();renderModels();$('models-status').textContent='密钥已保存，可点击「从 API 同步模型」。';status('密钥已保存。');
   }));
-  $('test-key').addEventListener('click', () => withApiBusy(async () => { connectionStatus('checking',{save:false});await (await client()).balance();connectionStatus('success');status('接口鉴权成功。正在同步模型，不会提交生图任务。');await syncModels({silent:true}); },'',true));
+  $('test-key').addEventListener('click', () => withApiBusy(async () => { setupVerified=false;setupModelsReady=false;renderSetupGuide();connectionStatus('checking',{save:false});await (await client()).balance();connectionStatus('success');status('接口鉴权成功。正在同步模型，不会提交生图任务。');await syncModels({silent:true}); },'',true));
   $('custom-model').addEventListener('change', () => {localStorage.setItem('lk888-custom-model', $('custom-model').value.trim());updateModelInputs();});
   $('generate').addEventListener('click', () => withBusy(generate));
   $('resume').addEventListener('click', () => withBusy(async () => { if (job.source) { if (capture && !job.imported) await importImage(); else status('结果已保留。点击保存结果下载图片。'); return; } await queue.tick(); }));
@@ -625,8 +635,8 @@ async function init() {
   }));
   $('reset-job').addEventListener('click', () => {
     if (busy) return;
-    if (!$('reset-confirm').checked) { status('请先在平台确认原任务，再勾选设置中的确认项。', true); return; }
-    const pending=queue?.jobs.find(j=>j.id===selectedJobId);if(pending?.state==='uncertain'){pending.state=pending.tasks.some(t=>t.state==='running')?'running':'failed';pending.submissionFailed=true;pending.error='已在平台核对上次提交，未自动重试。';queue.save();}job = null; saveJob(); $('reset-confirm').checked = false; status('已结束本机任务记录。不会取消平台任务。'); refresh();
+    if (!readChecked($('reset-confirm'))) { status('请先在平台确认原任务，再勾选设置中的确认项。', true); return; }
+    const pending=queue?.jobs.find(j=>j.id===selectedJobId);if(pending?.state==='uncertain'){pending.state=pending.tasks.some(t=>t.state==='running')?'running':'failed';pending.submissionFailed=true;pending.error='已在平台核对上次提交，未自动重试。';queue.save();}job = null; saveJob(); setChecked($('reset-confirm'),false,$('reset-confirm-mark')); status('已结束本机任务记录。不会取消平台任务。'); refresh();
   });
   $('add-reference').addEventListener('click',()=>withBusy(async()=>{const files=await fs.getFileForOpening({types:['png','jpg','jpeg','webp'],allowMultiple:true});if(files)await addFiles(Array.isArray(files)?files:[files]);}));
   $('paste-reference').addEventListener('click',()=>promptEditor.pasteImage());
@@ -656,6 +666,9 @@ async function init() {
   }).catch(()=>{});
   if (job) status(job.imported ? '上次结果已导入，可以继续生成。' : job.taskId ? '存在未结束任务：' + job.taskId + '。请查询原任务。' : '上次提交状态不确定，请先到平台确认任务。');
   refresh();
+  try{setupKeySaved=!!(await key()).trim();}catch(_){setupKeySaved=false;}
+  renderSetupGuide();
+  if(!setupKeySaved){settingsPage(true);status('欢迎使用 AI 局部改图。先在设置中保存 API Key，再检查连接并同步模型。');}
   // Load cached models at startup; fetch only on an explicit settings action.
 
 }
