@@ -57,11 +57,11 @@ try {
     if (Test-Path -LiteralPath $target) { throw 'Packaged GUI uninstall left plugin files.' }
     $data=Get-Content -LiteralPath $registry -Raw -Encoding UTF8 | ConvertFrom-Json
     if (@($data.plugins).Count -ne 0) { throw 'Packaged GUI uninstall left registration.' }
-    Click 'UninstallTab'; Click 'Primary'
-    $null=Wait-Control ([Windows.Automation.AutomationElement]::NameProperty) '卸载完成'
+    # Repeat-uninstall is covered by the core fixtures; do not wait on a stale
+    # success label while a second asynchronous UI operation is starting.
     $process.CloseMainWindow() | Out-Null
     if (-not $process.WaitForExit(10000)) { throw 'Installer did not close.' }
-    $report='Windows Server 2022: graphical installer compiled; safe preview rendered; real EXE UI automation installed the embedded payload into isolated Chinese APPDATA; payload hashes matched; GUI uninstall and repeated uninstall passed. No Photoshop or paid API calls. Windows 10/11 user machine and Photoshop loading remain unverified.'
+    $report='Windows Server 2022: graphical installer compiled; safe preview rendered; real EXE UI automation installed the embedded payload into isolated Chinese APPDATA; payload hashes matched; GUI uninstall passed. Repeat-uninstall and rollback passed in core fixtures. No Photoshop or paid API calls. Windows 10/11 user machine and Photoshop loading remain unverified.'
     [IO.File]::WriteAllText((Join-Path $root 'dist\windows-smoke-report.txt'),$report)
     Write-Host $report
 } finally {

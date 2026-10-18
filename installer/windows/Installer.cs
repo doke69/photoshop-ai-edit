@@ -98,6 +98,7 @@ internal static class Installer {
         foreach (var name in new[] { "InstallTab", "UninstallTab", "Primary", "Guide" }) Find<Button>(name).IsEnabled = false;
         Find<ProgressBar>("Progress").Visibility = Visibility.Visible;
         Find<Button>("Primary").Content = uninstall ? "正在卸载…" : "正在安装…";
+        ShowResult(uninstall ? "正在卸载…" : "正在安装…", "正在备份并更新插件文件和登记，请稍候。", false);
         try {
             var report = await Task.Run(delegate {
                 if (Process.GetProcessesByName("Photoshop").Length > 0) throw new InvalidOperationException("请先保存文件并完全退出 Photoshop，再重试。");

@@ -8,11 +8,11 @@
 
 在 Photoshop 中框选或套索选中区域，输入修改要求并添加参考图，通过 LK888 生成候选结果，再按原坐标添加为独立图层。适合局部换装、调整物品、风格参考等需要保留原画面其他区域的修改。
 
-**当前发布版：v0.4.3** · Photoshop 25.0（2024）及以上 · macOS / Windows
+**当前发布版：v0.4.4** · Photoshop 25.0（2024）及以上 · macOS / Windows
 
-[下载安装包](https://github.com/doke69/photoshop-ai-edit/releases/latest) · [v0.4.3 更新说明](https://github.com/doke69/photoshop-ai-edit/releases/tag/v0.4.3) · [当前版本源码](https://github.com/doke69/photoshop-ai-edit/tree/v0.4.3)
+[下载安装包](https://github.com/doke69/photoshop-ai-edit/releases/latest) · [v0.4.4 更新说明](https://github.com/doke69/photoshop-ai-edit/releases/tag/v0.4.4) · [当前版本源码](https://github.com/doke69/photoshop-ai-edit/tree/v0.4.4)
 
-> Mac 推荐下载 DMG，Windows 下载便携安装包；也提供 CCX 供 OpenUXP 安装。安装包附带离线 API 创建教程。源码与安装包对应 `v0.4.3` 标签。
+> Mac 推荐下载 DMG，Windows 下载 EXE 图形安装器；也提供 CCX 供 OpenUXP 安装。安装包附带离线 API 创建教程。源码与安装包对应 `v0.4.4` 标签。
 
 ## 主要功能
 
@@ -41,26 +41,27 @@
 
 <img src="assets/readme/installer-v0.4.3.png" alt="安装与卸载向导" width="760">
 
-从 [v0.4.3 Releases](https://github.com/doke69/photoshop-ai-edit/releases/tag/v0.4.3) 下载对应平台文件：
+从 [v0.4.4 Releases](https://github.com/doke69/photoshop-ai-edit/releases/tag/v0.4.4) 下载对应平台文件：
 
 | 安装方式 | 文件 | 操作 |
 | --- | --- | --- |
-| Mac DMG（Apple Silicon / Intel） | [Photoshop-AI-Edit-0.4.3-macOS-universal.dmg](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.3/Photoshop-AI-Edit-0.4.3-macOS-universal.dmg) | 双击挂载后打开其中的安装器 |
-| Mac ZIP 备用安装包 | [Photoshop-AI-Edit-0.4.3-macOS-universal.zip](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.3/Photoshop-AI-Edit-0.4.3-macOS-universal.zip) | 完整解压，双击 `Install Photoshop AI Edit.app` |
-| Windows 便携安装包 | [Photoshop-AI-Edit-0.4.3-Windows.zip](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.3/Photoshop-AI-Edit-0.4.3-Windows.zip) | 完整解压，双击 `Install.cmd` |
-| OpenUXP / Creative Cloud | [photoshop-ai-edit-LK888-0.4.3.ccx](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.3/photoshop-ai-edit-LK888-0.4.3.ccx) | 用对应的 UXP 安装工具打开 |
+| Mac DMG（Apple Silicon / Intel） | [Photoshop-AI-Edit-0.4.4-macOS-universal.dmg](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.4/Photoshop-AI-Edit-0.4.4-macOS-universal.dmg) | 双击挂载后打开其中的安装器 |
+| Mac ZIP 备用安装包 | [Photoshop-AI-Edit-0.4.4-macOS-universal.zip](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.4/Photoshop-AI-Edit-0.4.4-macOS-universal.zip) | 完整解压，双击 `Install Photoshop AI Edit.app` |
+| Windows 图形安装器（推荐） | [Photoshop-AI-Edit-0.4.4-Windows-Setup.exe](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.4/Photoshop-AI-Edit-0.4.4-Windows-Setup.exe) | 双击打开，选择「安装 / 更新」或「卸载插件」 |
+| Windows 命令行 ZIP 备用 | [Photoshop-AI-Edit-0.4.4-Windows.zip](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.4/Photoshop-AI-Edit-0.4.4-Windows.zip) | 完整解压，双击 `Install.cmd` |
+| OpenUXP / Creative Cloud | [photoshop-ai-edit-LK888-0.4.4.ccx](https://github.com/doke69/photoshop-ai-edit/releases/download/v0.4.4/photoshop-ai-edit-LK888-0.4.4.ccx) | 用对应的 UXP 安装工具打开 |
 
-安装前保存文件并完全退出 Photoshop。安装器无需 Node.js、管理员权限或 UXP 开发工具；只更新当前用户的本插件，备份旧文件和插件登记，保留 API Key 与任务数据。备份位于 Adobe UXP 用户目录中的 `Plugins/.AIEditInstallerBackups`。安装包附带离线「安装与使用指南」，安装完成后可直接打开。Mac 安装器采用深色双栏界面与原创「选区 + 焕新」图标，提供安装 / 更新与卸载两个入口；Windows 解压后通过 `Install.cmd` / `Uninstall.cmd` 操作。卸载同样备份插件文件并保留 Key、历史和其他插件。
+安装前保存文件并完全退出 Photoshop。安装器无需 Node.js、管理员权限或 UXP 开发工具；只更新当前用户的本插件，备份旧文件和插件登记，保留 API Key 与任务数据。备份位于 Adobe UXP 用户目录中的 `Plugins/.AIEditInstallerBackups`。安装包附带离线「安装与使用指南」，安装完成后可直接打开。Mac 安装器采用深色双栏界面与原创「选区 + 焕新」图标，提供安装 / 更新与卸载两个入口；Windows 使用同款深色双栏 EXE 安装器，内置插件和指南，无需解压，失败时可保存诊断记录；ZIP 中的 `Install.cmd` / `Uninstall.cmd` 仍可备用。卸载同样备份插件文件并保留 Key、历史和其他插件。
 
 首次打开且尚未保存 Key 时自动进入设置页：**获取 API Key → 保存 → 检查连接并同步模型 → 返回改图**。检查连接不提交付费生图；设置页显示各步完成状态，并提供注册链接。实际生成使用平台额度。
 
 任务核对区改为独立确认行，复选标记与文字同排，长文字自然换行；恢复结果与结束记录按钮另起一行，避免原生复选框把说明挤到按钮上。
 
-**验证范围：**安装逻辑已在 Mac 隔离目录验证首次安装、升级备份、登记保留、私有数据保留与异常保护；新安装器尚未完成真实 Photoshop 加载验证，Windows 安装脚本尚未实机验证。Mac 安装器为临时签名，未取得 Apple 开发者签名 / 公证，系统可能要求手动授权或阻止打开；可使用 CCX + OpenUXP 作为备用方式。挂载磁盘使用深蓝色品牌磁盘图标；若桌面仍显示旧图标，先推出旧映像，再打开新版 DMG。
+**验证范围：**安装逻辑已在 Mac 隔离目录验证首次安装、升级备份、登记保留、私有数据保留与异常保护；Windows 图形安装器在 Windows Server 2022 的隔离目录验证安装、升级、卸载、回滚和最终 EXE 界面操作；Windows 10 / 11 用户电脑与真实 Photoshop 加载仍待验证。Windows EXE 需要 .NET Framework 4.8、Windows PowerShell 5.1，尚无代码签名，可能提示发布者未知。Mac 安装器为临时签名，未取得 Apple 开发者签名 / 公证，系统可能要求手动授权或阻止打开；可使用 CCX + OpenUXP 作为备用方式。挂载磁盘使用深蓝色品牌磁盘图标；若桌面仍显示旧图标，先推出旧映像，再打开新版 DMG。
 
 ## 安装：使用 OpenUXP
 
-1. 从 [Releases](https://github.com/doke69/photoshop-ai-edit/releases/latest) 下载 **`photoshop-ai-edit-LK888-0.4.3.ccx`**。自动生成的 Source code 压缩包是源码，不是直接安装包。
+1. 从 [Releases](https://github.com/doke69/photoshop-ai-edit/releases/latest) 下载 **`photoshop-ai-edit-LK888-0.4.4.ccx`**。自动生成的 Source code 压缩包是源码，不是直接安装包。
 2. 安装 [OpenUXP Installer](https://moonvy.com/apps/upx-installer/)（第三方开源工具，提供 macOS / Windows 版，支持 UXP `.ccx`）。
 3. 保存文件并退出 Photoshop，将 CCX 拖入 OpenUXP，核对名称“AI 局部改图”、版本和 Photoshop 宿主后安装。如官方安装方式失败，可使用工具提供的侧载方式，具体选项以所用工具版本为准。
 4. 重启 Photoshop，在“增效工具”中打开“AI 局部改图”。
@@ -95,7 +96,7 @@
 
 **macOS**：在“系统设置 → 键盘 → 听写”中启用中文，聚焦修改要求后使用系统配置的听写快捷键。插件的“听写帮助”按钮提供说明，不会直接启用麦克风。目前没有 Mac 一键录音助手。
 
-**Windows**：语音、标注和部分剪贴板／拖入辅助功能需要单独启动助手，**CCX 不包含助手**。安装 Node.js，下载并解压 [v0.4.3 源码](https://github.com/doke69/photoshop-ai-edit/archive/refs/tags/v0.4.3.zip)，在该项目目录运行：
+**Windows**：语音、标注和部分剪贴板／拖入辅助功能需要单独启动助手，**CCX 不包含助手**。安装 Node.js，下载并解压 [v0.4.4 源码](https://github.com/doke69/photoshop-ai-edit/archive/refs/tags/v0.4.4.zip)，在该项目目录运行：
 
 ```sh
 node scripts/voice-server.cjs
@@ -112,7 +113,7 @@ node scripts/voice-server.cjs
 
 ## 开发与验证
 
-开发可使用 [main 最新源码](https://github.com/doke69/photoshop-ai-edit/tree/main)；已发布安装包对应 [v0.4.3 标签源码](https://github.com/doke69/photoshop-ai-edit/tree/v0.4.3)。main 已移除旧 WebView 页面、开发电脑专用脚本及生成文件的源码跟踪；运行打包或预览脚本可重新生成 dist 文件。
+开发可使用 [main 最新源码](https://github.com/doke69/photoshop-ai-edit/tree/main)；已发布安装包对应 [v0.4.4 标签源码](https://github.com/doke69/photoshop-ai-edit/tree/v0.4.4)。main 已移除旧 WebView 页面、开发电脑专用脚本及生成文件的源码跟踪；运行打包或预览脚本可重新生成 dist 文件。
 
 ```sh
 node --test tests/*.test.cjs
@@ -121,10 +122,10 @@ python3 scripts/package.py
 python3 scripts/package.py --installers
 ```
 
-v0.4.3 共 **132 项自动测试通过**，新增首次配置、同步失败引导及任务确认交互检查；接口使用模拟响应，未调用付费生图。自动测试不代表所有 Photoshop 版本、原生界面和安装工具的实机兼容性已验证。
+插件共 **132 项自动测试通过**，新增首次配置、同步失败引导及任务确认交互检查；接口使用模拟响应，未调用付费生图。自动测试不代表所有 Photoshop 版本、原生界面和安装工具的实机兼容性已验证。
 
 ## 来源与许可
 
 选区捕获、坐标变换、智能对象与蒙版模块复用 [FromPS / ToPS](https://github.com/dgl-10/PhotoshopPlugin)，保留上游来源及 **CC BY-NC-SA 4.0** 许可。本项目软件代码和附带组件限非商业使用；图像使用权依输入素材与模型平台条款确定。
 
-详见 [LICENSE](https://github.com/doke69/photoshop-ai-edit/blob/v0.4.3/LICENSE) 与 [来源说明](https://github.com/doke69/photoshop-ai-edit/blob/v0.4.3/plugin/NOTICE.md)。
+详见 [LICENSE](https://github.com/doke69/photoshop-ai-edit/blob/v0.4.4/LICENSE) 与 [来源说明](https://github.com/doke69/photoshop-ai-edit/blob/v0.4.4/plugin/NOTICE.md)。

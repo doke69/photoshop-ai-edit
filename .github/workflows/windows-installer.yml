@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: ['codex/windows-graphical-installer']
-    paths: ['installer/**', 'scripts/package.py', 'tests/installer/**', '.github/workflows/windows-installer.yml']
+    paths: ['installer/**', 'scripts/package.py', 'plugin/**', 'assets/branding/**', 'assets/guide/**', 'tests/installer/**', '.github/workflows/windows-installer.yml']
 permissions:
   contents: read
 jobs:
