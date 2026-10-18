@@ -55,6 +55,17 @@ def make_icns(source, output, iconset):
             subprocess.run(['sips', '-z', str(size * scale), str(size * scale), str(source), '--out', str(iconset / name)], check=True, stdout=subprocess.DEVNULL)
     subprocess.run(['xcrun', 'iconutil', '-c', 'icns', str(iconset), '-o', str(output)], check=True)
 
+def build_windows_payload():
+    """Portable inputs for the native Windows build; no Mac tools required."""
+    with tempfile.TemporaryDirectory(prefix='ai-edit-windows-') as temporary:
+        payload = Path(temporary)
+        copy_plugin(payload / 'plugin')
+        (payload / '安装与使用指南.html').write_text(render_guide(), encoding='utf-8')
+        for name in ('install.ps1', 'InstallerCore.ps1'):
+            text = (root / 'installer/windows' / name).read_text(encoding='utf-8-sig')
+            (payload / name).write_bytes(text.replace('\r\n', '\n').replace('\n', '\r\n').encode('utf-8-sig'))
+        return archive_tree(payload, dist / 'windows-payload.zip')
+
 def build_installers():
     if platform.system() != 'Darwin':
         raise RuntimeError('Universal macOS installer requires macOS and Xcode command line tools.')
@@ -119,8 +130,8 @@ def build_installers():
         windows.mkdir()
         copy_plugin(windows / 'plugin')
         (windows / '安装与使用指南.html').write_text(guide)
-        for name in ('Install.cmd', 'Uninstall.cmd', 'install.ps1'):
-            text = (root / 'installer/windows' / name).read_text()
+        for name in ('Install.cmd', 'Uninstall.cmd', 'install.ps1', 'InstallerCore.ps1'):
+            text = (root / 'installer/windows' / name).read_text(encoding='utf-8-sig')
             (windows / name).write_bytes(text.replace('\r\n', '\n').replace('\n', '\r\n').encode('utf-8-sig' if name.endswith('.ps1') else 'ascii'))
         win = archive_tree(windows, dist / (windows.name + '.zip'), windows.name)
         (dist / f'安装与使用指南-v{version}.html').write_text(guide)
@@ -129,7 +140,11 @@ def build_installers():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--installers', action='store_true')
+    parser.add_argument('--windows-payload', action='store_true')
     args = parser.parse_args()
+    if args.windows_payload:
+        print(build_windows_payload())
+        raise SystemExit(0)
     artifacts = [archive_tree(plugin, dist / f'photoshop-ai-edit-LK888-{version}.ccx')]
     if args.installers:
         artifacts.extend(build_installers())

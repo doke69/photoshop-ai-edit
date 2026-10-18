@@ -1,0 +1,32 @@
+name: Windows graphical installer
+on:
+  workflow_dispatch:
+  push:
+    branches: ['codex/windows-graphical-installer']
+    paths: ['installer/**', 'scripts/package.py', 'tests/installer/**', '.github/workflows/windows-installer.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installer fixture tests (isolated directories)
+        run: '& ./tests/installer/windows.ps1'
+      - name: Build self-contained graphical installer
+        run: '& ./installer/windows/build.ps1'
+      - name: GUI preview and packaged install / uninstall smoke test
+        run: '& ./tests/installer/windows-gui.ps1'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Windows-graphical-installer
+          path: |
+            dist/*-Windows-Setup.exe
+            dist/*-Windows-Setup.exe.sha256
+            dist/windows-installer-preview.png
+            dist/windows-smoke-report.txt
+          if-no-files-found: error
