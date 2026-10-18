@@ -1,0 +1,52 @@
+name: Windows graphical installer
+on:
+  workflow_dispatch:
+    inputs:
+      published_version:
+        description: 'Optional existing release version to verify (for example 0.4.4)'
+        required: false
+        type: string
+  push:
+    branches: ['codex/windows-graphical-installer']
+    paths: ['installer/**', 'scripts/package.py', 'plugin/**', 'assets/branding/**', 'assets/guide/**', 'tests/installer/**', '.github/workflows/windows-installer.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installer fixture tests (isolated directories)
+        run: '& ./tests/installer/windows.ps1'
+      - name: Build self-contained graphical installer
+        run: '& ./installer/windows/build.ps1'
+      - name: GUI preview and packaged install / uninstall smoke test
+        run: '& ./tests/installer/windows-gui.ps1'
+      - name: Verify the EXE shell icon on Windows
+        env:
+          PUBLISHED_VERSION: ${{ inputs.published_version }}
+        run: |
+          $version = (Get-Content plugin/manifest.json -Raw | ConvertFrom-Json).version
+          & ./tests/installer/windows-icons.ps1 -Executable "dist/Photoshop-AI-Edit-$version-Windows-Setup.exe" -Output dist/windows-exe-icon.png
+          if ($env:PUBLISHED_VERSION) {
+            if ($env:PUBLISHED_VERSION -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid release version.' }
+            $published = $env:PUBLISHED_VERSION
+            Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/doke69/photoshop-ai-edit/releases/download/v$published/Photoshop-AI-Edit-$published-Windows-Setup.exe" -OutFile dist/Published-Setup.exe
+            & ./tests/installer/windows-icons.ps1 -Executable dist/Published-Setup.exe -Output dist/windows-published-exe-icon.png
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Windows-graphical-installer
+          path: |
+            dist/*-Windows-Setup.exe
+            dist/*-Windows-Setup.exe.sha256
+            dist/windows-installer-preview*.png
+            dist/windows-smoke-report.txt
+            dist/*-Windows.ico
+            dist/windows*-exe-icon.png
+            dist/windows-shell-icon-*.png
+          if-no-files-found: error

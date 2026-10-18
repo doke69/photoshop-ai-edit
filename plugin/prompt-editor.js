@@ -1,7 +1,8 @@
+const {setButtonDisabled}=require('./ui-controls');
 // Native UXP textarea keeps Photoshop keyboard focus out of embedded WebViews.
 class PromptEditor {
-  constructor({node,voiceButton,expandButton,container,clipboard,onChange,onImage,onNotice,onVoice,context=()=>null,readImageClipboard}) {
-    Object.assign(this,{node,voiceButton,expandButton,container,clipboard,onChange,onImage,onNotice,onVoice,context,readImageClipboard});
+  constructor({node,voiceButton,expandButton,container,clipboard,onChange,onImage,onNotice,onVoice,context=()=>null,readImageClipboard,platform=''}) {
+    Object.assign(this,{node,voiceButton,expandButton,container,clipboard,onChange,onImage,onNotice,onVoice,context,readImageClipboard,platform});
     this.busy=false;this.pasting=false;this.voiceState='idle';this.pendingPaste=null;this.pasteFallbackTimer=null;
     node.addEventListener('input',()=>this.changed());
     node.addEventListener('keydown',event=>{
@@ -24,11 +25,14 @@ class PromptEditor {
     node.addEventListener('keyup',event=>event.stopPropagation());
     node.addEventListener('paste',event=>this.handlePaste(event));
     voiceButton.addEventListener('mousedown',event=>event.preventDefault());
-    voiceButton.addEventListener('click',()=>{if(!this.busy)this.onVoice(['starting','listening','stopping'].includes(this.voiceState)?'stop':'start');});
+    voiceButton.title=platform==='darwin'?'macOS 系统听写设置与使用方法':'先启动 Windows 本机语音助手，再点击开始听写';
+    voiceButton.textContent=platform==='darwin'?'听写帮助':'语音';
+    voiceButton.addEventListener('click',()=>{if(this.busy)return;if(this.platform==='darwin'){this.node.focus();this.onNotice('Mac：在系统设置 → 键盘 → 听写中开启中文听写；点击文字区后使用该处设置的听写快捷键。插件的本机语音助手目前仅支持 Windows。');return;}this.onVoice(['starting','listening','stopping'].includes(this.voiceState)?'stop':'start');});
     if(expandButton){
       expandButton.addEventListener('mousedown',event=>event.preventDefault());
       expandButton.addEventListener('click',()=>this.setExpanded(!this.container?.classList?.contains('expanded')));
     }
+    this.resize();
   }
   setExpanded(expanded){
     if(!this.container||!this.expandButton)return;
@@ -39,7 +43,11 @@ class PromptEditor {
     this.expandButton.setAttribute?.('aria-expanded',String(expanded));
     if(expanded)this.node.focus();
   }
-  changed(){this.onChange(this.node.value);}
+  changed(){this.resize();this.onChange(this.node.value);}
+  resize(){
+    if(!this.node.style)return;
+    this.node.style.width='100%';this.node.style.margin='0';
+  }
   clipboardImage(event){
     const clipboard=event?.clipboardData;if(!clipboard)return null;
     const supported=type=>/^image\/(png|jpeg|webp)$/i.test(type||'');
@@ -69,7 +77,7 @@ class PromptEditor {
   }
   setBusy(busy){
     if(this.busy===busy)return;this.busy=busy;
-    this.node.disabled=busy;this.voiceButton.disabled=busy;if(this.expandButton)this.expandButton.disabled=busy;
+    this.node.disabled=busy;setButtonDisabled(this.voiceButton,busy);if(this.expandButton)setButtonDisabled(this.expandButton,busy);
   }
   insert(value){
     if(this.busy||typeof value!=='string')return;
@@ -104,8 +112,33 @@ class PromptEditor {
     }catch(error){this.onNotice(error.message||'粘贴失败，请重新复制后再试。',true);}
     finally{this.pasting=false;}
   }
+  async pasteImage(){
+    if(this.busy||this.pasting)return;
+    this.pasting=true;const context=this.context();
+    try{
+      let bridgeError=null;
+      try{
+        const data=await this.readImageClipboard();
+        if(context!==this.context()||this.busy)return;
+        if(typeof data.image==='string'){await this.onImage(data.image);this.onNotice('图片已添加到参考图。');return;}
+      }catch(error){bridgeError=error;}
+      let contents={};try{contents=await Promise.race([this.clipboard?.getContent()||Promise.resolve({}),new Promise(resolve=>setTimeout(()=>resolve({}),1200))]);}catch(_){}
+      if(context!==this.context()||this.busy)return;
+      for(const [type,value] of Object.entries(contents||{})){
+        if(!/^image\/(png|jpeg|webp)$/i.test(type))continue;
+        if(typeof value==='string'&&value.startsWith('data:image/')){await this.onImage(value);this.onNotice('截图已添加到参考图。');return;}
+        if(value instanceof ArrayBuffer||ArrayBuffer.isView(value)){
+          const bytes=value instanceof ArrayBuffer?new Uint8Array(value):new Uint8Array(value.buffer,value.byteOffset,value.byteLength);
+          let encoded='';for(const byte of bytes)encoded+=String.fromCharCode(byte);
+          await this.onImage('data:'+type.toLowerCase()+';base64,'+btoa(encoded));this.onNotice('截图已添加到参考图。');return;
+        }
+      }
+      throw bridgeError||new Error('剪贴板中没有图片，请先复制截图或图片文件。');
+    }catch(error){this.onNotice(error.message||'粘贴图片失败。',true);}
+    finally{this.pasting=false;}
+  }
   voice(data){
-    this.voiceState=data.state;this.voiceButton.textContent=['starting','listening','stopping'].includes(data.state)?'⏹ 停止':'🎙 语音';
+    this.voiceState=data.state;this.voiceButton.textContent=['starting','listening','stopping'].includes(data.state)?'停止':this.platform==='darwin'?'听写帮助':'语音';
     this.onNotice(data.message||'',data.state==='error');
   }
 }

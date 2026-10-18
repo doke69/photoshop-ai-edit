@@ -1,4 +1,4 @@
-# PS 局部改图插件
+# Photoshop AI Edit — PS AI 局部改图插件
 
 ## Register
 
@@ -6,7 +6,7 @@ product
 
 ## Users
 
-在 Windows Photoshop 内工作的设计者，使用现有套索、选区和图层提高改图效率。
+在 macOS / Windows Photoshop 内工作的设计者，使用现有套索、选区和图层提高改图效率。
 
 ## Product Purpose
 

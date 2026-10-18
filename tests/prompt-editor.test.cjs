@@ -29,6 +29,16 @@ test('screenshot paste adds a reference without changing prompt or caret',async(
   h.input.selectionStart=h.input.selectionEnd=2;h.input.events.paste(pasteEvent());await flush();
   assert.deepEqual(h.images,['data:image/png;base64,YWJj']);assert.equal(h.input.value,'红色花瓶');assert.equal(h.input.selectionStart,2);
 });
+test('paste image action reads screenshot and never inserts clipboard text',async()=>{
+  const h=fixture({clipboard:{getContent:async()=>({'text/plain':'别改提示词'})},readImageClipboard:async()=>({image:'data:image/png;base64,YWJj'})});
+  await h.editor.pasteImage();
+  assert.deepEqual(h.images,['data:image/png;base64,YWJj']);
+  assert.equal(h.input.value,'红色花瓶');
+});
+test('prompt layout resets native inset margin and leaves height to CSS',()=>{
+  const h=fixture();h.input.style={margin:'16px'};h.editor.resize();assert.equal(h.input.style.margin,'0');assert.equal(h.input.style.width,'100%');
+  h.input.value='文字'.repeat(300);h.editor.changed();assert.equal(h.input.style.height,undefined);
+});
 
 test('Ctrl+V followed by a paste event inserts clipboard content exactly once',async()=>{
   let reads=0;const h=fixture({clipboard:{getContent:async()=>{reads++;return {'text/plain':'加上'};}}});
@@ -52,7 +62,7 @@ test('late paste cannot alter a different region after switching history',async(
 
 test('dictation inserts at caret without replacing typed prompt',()=>{
   const h=fixture();h.input.selectionStart=h.input.selectionEnd=4;h.editor.insert('，保留纹理');
-  assert.equal(h.input.value,'红色花瓶，保留纹理');h.editor.voice({state:'listening',message:'正在听写'});assert.equal(h.voice.textContent,'⏹ 停止');
+  assert.equal(h.input.value,'红色花瓶，保留纹理');h.editor.voice({state:'listening',message:'正在听写'});assert.equal(h.voice.textContent,'停止');
 });
 
 test('context-menu paste inserts text once without a separate paste button',async()=>{
@@ -66,4 +76,9 @@ test('expand button reveals the full editable prompt and Escape collapses it wit
   assert.equal(h.container.classList.contains('expanded'),true);assert.equal(h.expand.title,'收起修改要求');assert.equal(h.expand['aria-expanded'],'true');assert.equal(h.input.value,original);
   let prevented=false;h.input.events.keydown({key:'Escape',stopPropagation(){},preventDefault(){prevented=true;}});
   assert.equal(prevented,true);assert.equal(h.container.classList.contains('expanded'),false);assert.equal(h.expand.title,'展开修改要求');assert.equal(h.input.value,original);
+});
+
+
+test('Mac dictation help focuses the input without starting the Windows helper',()=>{
+ let starts=0;const h=fixture({platform:'darwin',onVoice:()=>starts++});h.voice.events.click();assert.equal(starts,0);assert.equal(h.input.focused,true);assert.equal(h.voice.textContent,'听写帮助');assert.match(h.notices[0][0],/系统设置.*键盘.*听写/);h.editor.voice({state:'idle'});assert.equal(h.voice.textContent,'听写帮助');
 });
