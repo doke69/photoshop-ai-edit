@@ -139,3 +139,13 @@ test('authoritative empty detail schemas do not resurrect old platform presets o
 test('Token models cannot return through cached catalogs or billing metadata',()=>{
  const records=[{id:'banana-2-token'},{name:'other',billing_mode:'tokens'},{id:'another',display_name:'Pro Token版'},{id:'banana-2'}];assert.deepEqual(normalizeModels(records).map(m=>m.id),['banana-2']);const cached=records.map(m=>({...m,id:m.id||m.name,kind:'edit',evidence:'api',protocol:'media'}));assert.deepEqual(restoreProfiles(cached).map(m=>m.id),['banana-2']);
 });
+
+test('pixel schemas use declared auto size when the capture cannot match the requested ratio',()=>{
+ for(const id of ['tt-image-2','pixel-editor']){
+  const model=normalize({id,capabilities:{image_editing:true},parameter_schema:{properties:{size:{enum:['auto','1024x1024','2560x1440']}}}});
+  assert.deepEqual(buildModelParams(model,{quality:'2K',ratio:'16:9',includeRatio:false}),{size:'auto'});
+  assert.deepEqual(buildModelParams(model,{quality:'2K',ratio:'16:9',includeRatio:true}),{size:'2560x1440'});
+ }
+ const fixedOnly=normalize({id:'pixels',capabilities:{image_editing:true},parameter_schema:{properties:{size:{enum:['1024x1024']}}}});
+ assert.deepEqual(buildModelParams(fixedOnly,{quality:'1K',ratio:'16:9',includeRatio:false}),{size:'1024x1024'});
+});

@@ -47,5 +47,37 @@ try {
     [IO.File]::WriteAllText((Join-Path $first.Destination 'manifest.json'),'{"id":"another.plugin"}')
     Expect-Failure { Invoke-AIEditChange -PayloadDirectory $payload -BaseDirectory $base } 'Occupied target accepted'
     Assert ((Read-Registry (Join-Path $first.Destination 'manifest.json')).id -eq 'another.plugin') 'Occupied target altered'
+    # Simulate an Adobe update after the installer has staged its files.
+    $concurrent=Join-Path $work '并发登记测试'
+    $installed=Invoke-AIEditChange -PayloadDirectory $payload -BaseDirectory $concurrent
+    $concurrentRegistry=Join-Path $concurrent 'PluginsInfo\v1\PS.json'
+    function Add-ExternalPlugin($Path,$Id) {
+        $json=Read-Registry $Path
+        $json.plugins+=@([pscustomobject]@{pluginId=$Id; path='new-path'; revision=7})
+        $json | Add-Member -NotePropertyName externalRevision -NotePropertyValue $Id -Force
+        [IO.File]::WriteAllText($Path,($json|ConvertTo-Json -Depth 100),(New-Object Text.UTF8Encoding($false)))
+    }
+    $null=Invoke-AIEditChange -PayloadDirectory $payload -BaseDirectory $concurrent -BeforeRegistryCommit { param($Path) Add-ExternalPlugin $Path 'late.install' }
+    $json=Read-Registry $concurrentRegistry
+    Assert ($json.plugins.pluginId -contains 'late.install' -and $json.externalRevision -eq 'late.install') 'Install overwrote concurrent registration'
+    $null=Invoke-AIEditChange -PayloadDirectory $payload -BaseDirectory $concurrent -Uninstall -BeforeRegistryCommit { param($Path) Add-ExternalPlugin $Path 'late.uninstall' }
+    $json=Read-Registry $concurrentRegistry
+    Assert ($json.plugins.Count -eq 2 -and $json.externalRevision -eq 'late.uninstall') 'Uninstall overwrote concurrent registration'
+    $null=Invoke-AIEditChange -PayloadDirectory $payload -BaseDirectory $concurrent
+    $failAfterWrite={ param($Temporary,$Destination)
+        [IO.File]::Replace($Temporary,$Destination,[System.Management.Automation.Language.NullString]::Value)
+        Add-ExternalPlugin $Destination 'late.rollback'
+        throw 'Failure after registry write'
+    }
+    Expect-Failure { Invoke-AIEditChange -PayloadDirectory $payload -BaseDirectory $concurrent -Uninstall -RegistryWriter $failAfterWrite } 'Post-write failure ignored'
+    $json=Read-Registry $concurrentRegistry
+    Assert ($json.externalRevision -eq 'late.rollback' -and $json.plugins.pluginId -contains 'late.rollback') 'Rollback lost concurrent plugin or metadata'
+    Assert ($json.plugins.pluginId -contains 'com.local.lk888.psedit') 'Rollback lost own registry entry'
+    Assert (Test-Path -LiteralPath $installed.Destination) 'Rollback lost own files'
+    $lock=[IO.File]::Open((Join-Path (Split-Path $concurrentRegistry -Parent) '.ai-edit-installer.lock'),[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
+    try { Expect-Failure { Invoke-AIEditChange -PayloadDirectory $payload -BaseDirectory $concurrent -Uninstall } 'Concurrent installer lock ignored' }
+    finally { $lock.Dispose() }
+    $null=Invoke-AIEditChange -PayloadDirectory $payload -BaseDirectory $concurrent -Uninstall
+    Write-Host 'Concurrent registry fixtures passed: latest install/uninstall merge, selective rollback and installer lock.'
     Write-Host 'Windows fixtures passed: Chinese paths, first install, BOM registry, upgrade backup, metadata, other plugins, private data, install/uninstall rollback, repeat uninstall, malformed registry and occupied target.'
 } finally { Remove-Item -LiteralPath $work -Recurse -Force }

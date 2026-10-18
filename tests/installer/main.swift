@@ -70,3 +70,44 @@ expect(try String(contentsOf: privateData, encoding: .utf8) == "private-fixture"
 let repeated = try uninstallPlugin(support: support)
 expect(repeated.versions.isEmpty && repeated.backup == nil, "Repeated uninstall should do nothing")
 print("Uninstall fixture checks passed: selective removal, backup, data retention, rollback, repeat operation.")
+
+// Simulate an Adobe component updating PS.json after files were staged, while
+// the installer still holds its original snapshot.
+let concurrent = work.appendingPathComponent("concurrent")
+let originalInstall = try installPlugin(payload: payload, support: concurrent)
+let concurrentRegistry = concurrent.appendingPathComponent("PluginsInfo/v1/PS.json")
+func externalRegistryUpdate(_ registry: URL, _ otherID: String) throws {
+    var root = try JSONSerialization.jsonObject(with: Data(contentsOf: registry)) as! [String: Any]
+    var records = root["plugins"] as! [[String: Any]]
+    records.append(["pluginId": otherID, "path": "new-path", "revision": 7])
+    root["plugins"] = records; root["externalRevision"] = otherID
+    try JSONSerialization.data(withJSONObject: root).write(to: registry, options: .atomic)
+}
+_ = try installPlugin(payload: payload, support: concurrent, beforeRegistryCommit: { try externalRegistryUpdate($0, "late.install") })
+var latest = try JSONSerialization.jsonObject(with: Data(contentsOf: concurrentRegistry)) as! [String: Any]
+expect((latest["plugins"] as! [[String: Any]]).contains { $0["pluginId"] as? String == "late.install" }, "Install lost concurrent plugin")
+expect(latest["externalRevision"] as? String == "late.install", "Install lost concurrent metadata")
+_ = try uninstallPlugin(support: concurrent, beforeRegistryCommit: { try externalRegistryUpdate($0, "late.uninstall") })
+latest = try JSONSerialization.jsonObject(with: Data(contentsOf: concurrentRegistry)) as! [String: Any]
+expect((latest["plugins"] as! [[String: Any]]).count == 2, "Uninstall lost concurrent plugins")
+expect(latest["externalRevision"] as? String == "late.uninstall", "Uninstall lost concurrent metadata")
+_ = try installPlugin(payload: payload, support: concurrent)
+do {
+    _ = try uninstallPlugin(support: concurrent, registryWriter: { data, url in
+        try data.write(to: url, options: .atomic)
+        try externalRegistryUpdate(url, "late.rollback")
+        throw InstallerFailure(message: "Failure after registry write")
+    })
+    fatalError("Post-write failure ignored")
+} catch { }
+latest = try JSONSerialization.jsonObject(with: Data(contentsOf: concurrentRegistry)) as! [String: Any]
+expect(latest["externalRevision"] as? String == "late.rollback", "Rollback overwrote concurrent metadata")
+expect((latest["plugins"] as! [[String: Any]]).contains { $0["pluginId"] as? String == "late.rollback" }, "Rollback removed concurrent plugin")
+expect((latest["plugins"] as! [[String: Any]]).contains { $0["pluginId"] as? String == "com.local.lk888.psedit" }, "Rollback did not restore own record")
+expect(fm.fileExists(atPath: originalInstall.destination.appendingPathComponent("main.js").path), "Rollback lost own files")
+let registryLock = try RegistryLock(registry: concurrentRegistry)
+do { _ = try uninstallPlugin(support: concurrent); fatalError("Concurrent installer lock ignored") }
+catch is InstallerFailure { }
+registryLock.release()
+_ = try uninstallPlugin(support: concurrent)
+print("Concurrent registry checks passed: install/uninstall latest merge, selective post-write rollback and exclusive installer lock.")

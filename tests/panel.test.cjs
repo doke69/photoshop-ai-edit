@@ -5,7 +5,7 @@ const { test } = require('node:test');
 const api = require('../plugin/api');
 const {TaskQueue}=require('../plugin/task-queue');const {pngRGBA}=require('../plugin/png');
 
-function harness({ switchDocument = false, reopenSameDocument = false, reopenPathless = false, submissionFails = false, shrinkUpload = false, apiModels = null, modelSyncFails = false, balanceGate = null, balanceFails = false, nativeDropdownValue = false, missingKey = false, savedLocal = [], quotaBytes = Infinity, rejectAcceptedSave = false } = {}) {
+function harness({ switchDocument = false, reopenSameDocument = false, reopenPathless = false, submissionFails = false, shrinkUpload = false, apiModels = null, modelSyncFails = false, balanceGate = null, balanceFails = false, nativeDropdownValue = false, missingKey = false, savedLocal = [], quotaBytes = Infinity, rejectAcceptedSave = false, taskStatusPending = false } = {}) {
   const apiCalls=[];let notification; const action={addNotificationListener:async(_events,listener)=>{notification=listener;}};
   const nodes = {}, local = new Map(savedLocal), calls = [], writes = [], requests = [], reads = [], docEvents = {}, helperCalls=[];let reloads=0, imageDecodes=0,secureKey=missingKey?'':'test-key',quotaErrors=0;
   function makeNode(id='') { const node={id,value:id==='prompt'?'改成红色':id==='model'?'banana-2':'',textContent:'',hidden:false,style:{},children:[],attributes:{},className:'',classList:{add(){},remove(){}},addEventListener(event,fn){this[event]=fn;},setAttribute(name,value){this.attributes[name]=value;},removeAttribute(name){delete this.attributes[name];},append(...items){for(const item of items)this.appendChild(item);},appendChild(item){item.parentNode=this;this.children.push(item);if(item.id.startsWith('model-param-'))nodes[item.id]=item;},removeChild(item){this.children=this.children.filter(child=>child!==item);item.parentNode=null;},focus(){document.activeElement=this;},replaceChildren(...items){this.children=[];this.append(...items);},get parentElement(){return makeNode('parent');}};Object.defineProperty(node,'innerHTML',{get(){return '';},set(value){if(value==='')this.children=[];}});if(['model','quality','output-size','count','model-filter'].includes(id)){
@@ -22,7 +22,7 @@ function harness({ switchDocument = false, reopenSameDocument = false, reopenPat
   const mask = { width: 300, height: 200, components: 1, imageData: new Uint8Array(60000) };
   const capture = { bounds, maskData: mask, documentWidth:1000,documentHeight:800,context: { documentId: 12, documentName: 'sample.psd', documentPath:reopenPathless?'':'C:/project/sample.psd', originalBounds: { left: 150, top: 120, right: 350, bottom: 240 } }, imageData: { sourceBounds: bounds, imageData: { width: 300, height: 200, components:4,getData:async()=>new Uint8Array(300*200*4), dispose() {} } } };
   const ps = { getSelectionBounds:async()=>({left:150,top:120,right:350,bottom:240,width:200,height:120}),captureSelection: async () => ({...capture,imageData:{sourceBounds:bounds,imageData:{width:300,height:200,components:4,getData:async()=>new Uint8Array(300*200*4),dispose(){}}}}), placeBack: async (...args) => calls.push(args) };
-  const dataWrites=[];const dataFiles=new Map();const folder={createFile:async name=>({write:async value=>{dataWrites.push(name);dataFiles.set(name,value);}}),getEntry:async name=>{reads.push(name);return {read:async()=>dataFiles.get(name)};}};
+  const dataWrites=[],deletedFiles=[];const dataFiles=new Map();const folder={createFile:async name=>({write:async value=>{dataWrites.push(name);dataFiles.set(name,value);}}),getEntry:async name=>{reads.push(name);return {read:async()=>dataFiles.get(name),delete:async()=>{deletedFiles.push(name);dataFiles.delete(name);}};}};
   const storage = { formats: { binary: 'binary' }, secureStorage: { getItem: async () => new Uint8Array(Buffer.from(secureKey)),setItem:async(_name,value)=>{secureKey=value;} }, localFileSystem: { getDataFolder:async()=>folder,getTemporaryFolder: async () => ({ createFile: async () => ({ write: async value => writes.push(value) }) }), createSessionToken: () => 'session-token' } };
   const fetch = async (url, options) => {
     if(url.includes('127.0.0.1:17402/annotate/')){helperCalls.push({url,options});return {ok:true,json:async()=>url.includes('/open')?{id:'test-annotation'}:{state:'waiting'}};}
@@ -32,6 +32,7 @@ function harness({ switchDocument = false, reopenSameDocument = false, reopenPat
     if (switchDocument) app.activeDocument = { ...originalDoc, id: 99, path:'C:/project/other.psd' };
     if (reopenSameDocument) app.activeDocument = { ...originalDoc, id: 99 };
     if (reopenPathless) app.activeDocument = { ...originalDoc, id: 99, path:'C:/project/sample.psd' };
+    if(taskStatusPending)return {ok:true,json:async()=>({state:'running',is_final:false})};
     return { ok: true, json: async () => ({ is_final: true, state: 'success', result_url: 'data:image/png;base64,YWJj' }) };
   };
   class Client extends api.MediaClient { constructor(key) { super(key, fetch); } }
@@ -48,7 +49,7 @@ function harness({ switchDocument = false, reopenSameDocument = false, reopenPat
   // init loads saved prompt; restore the user's entry for this run.
   nodes.prompt ||= document.getElementById('prompt');nodes.prompt.value = '改成红色';
   document.getElementById('quality'); document.getElementById('output-size');
-  return { document,app,notify:()=>notification?.(),choices,apiCalls,node:id=>document.getElementById(id),select:choose,selected:id=>require('../plugin/dropdown').readChoice(document.getElementById(id)),openHistory:id=>context.openHistory(id),dataWrites,refreshTasks:()=>context.tasksUI(),nodes, docEvents, calls, writes, reads, local, capture, requests, helperCalls, saveAnnotation:image=>context.saveAnnotation(image), get reloads(){return reloads;}, get imageDecodes(){return imageDecodes;}, get quotaErrors(){return quotaErrors;}, ready:async()=>{for(let i=0;i<10;i++)await new Promise(r=>setImmediate(r));nodes.prompt.value='改成红色';} };
+  return { document,app,notify:()=>notification?.(),choices,apiCalls,node:id=>document.getElementById(id),select:choose,selected:id=>require('../plugin/dropdown').readChoice(document.getElementById(id)),openHistory:id=>context.openHistory(id),dataWrites,deletedFiles,deleteHistory:id=>context.deleteHistoryRecord(id),clearHistory:()=>context.clearHistory(),refreshTasks:()=>context.tasksUI(),nodes, docEvents, calls, writes, reads, local, capture, requests, helperCalls, saveAnnotation:image=>context.saveAnnotation(image), get reloads(){return reloads;}, get imageDecodes(){return imageDecodes;}, get quotaErrors(){return quotaErrors;}, ready:async()=>{for(let i=0;i<10;i++)await new Promise(r=>setImmediate(r));nodes.prompt.value='改成红色';} };
 }
 
 
@@ -438,4 +439,30 @@ test('an accepted task with unsaved state blocks generation until explicitly con
  assert.equal(h.requests.length,1);
  h.node('reset-confirm').click();h.node('reset-job').click();await h.ready();
  assert.equal(h.node('generate').disabled,false);
+});
+
+for(const state of ['uncertain','submitting','running','failed'])test('history deletion and clearing preserve protected '+state+' tasks',async()=>{
+ const record={id:'protected',captureRef:'region-protected',title:'局部改图 1',number:1,state,count:2,tasks:[{id:'paid-task',state:'running',results:[]}],prompt:'改颜色',model:'banana-2'};
+ const h=harness({savedLocal:[['lk888-jobs',JSON.stringify([record])]],taskStatusPending:true});await h.ready();
+ await h.nodes['tab-tasks'].click();
+ assert.equal(button(h.nodes['task-content'],'删除').disabled,true);
+ assert.equal(button(h.nodes['task-content'],'清空历史记录').disabled,true);
+ const before=h.local.get('lk888-jobs'),writes=h.dataWrites.length;
+ await h.deleteHistory('protected');await h.clearHistory();await h.ready();
+ assert.equal(h.local.get('lk888-jobs'),before);
+ assert.equal(h.dataWrites.length,writes);
+ assert.equal(h.deletedFiles.length,0);
+ assert.match(h.node('status').textContent,/不能清空/);
+ assert.equal(h.requests.length,0);
+});
+
+test('uncertain history without a task id cannot be removed to bypass confirmation',async()=>{
+ const record={id:'unknown',title:'局部改图 1',number:1,state:'uncertain',count:1,tasks:[],model:'banana-2'};
+ const h=harness({savedLocal:[['lk888-jobs',JSON.stringify([record])]]});await h.ready();
+ await h.deleteHistory('unknown');await h.clearHistory();
+ assert.equal(JSON.parse(h.local.get('lk888-jobs'))[0].id,'unknown');
+ assert.equal(h.node('generate').disabled,true);
+ h.node('reset-confirm').click();h.node('reset-job').click();await h.ready();
+ await h.deleteHistory('unknown');
+ assert.equal(JSON.parse(h.local.get('lk888-jobs')).length,0);
 });

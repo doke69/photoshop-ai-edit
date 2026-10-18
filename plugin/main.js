@@ -21,6 +21,7 @@ let lastSnapshot=null;
 let lastInputRefs=null,lastInputBusy=null;
 const stateLabel=record=>record.submissionFailed&&record.tasks?.length&&record.state!=='uncertain'?(record.tasks.some(t=>t.state==='running')?'部分提交 · 生成中':'部分失败'):record.state==='draft'?'待生成':record.state==='submitting'?'提交中':record.state==='ready'?'已完成':record.state==='failed'?'失败':record.state==='uncertain'?'待确认':'生成中';
 const awaitingConfirmation=record=>!!record?.pendingSubmit||record?.state==='uncertain'||record?.state==='submitting';
+const protectedHistory=record=>awaitingConfirmation(record)||record?.state==='running'||!!record?.tasks?.some(task=>task.state==='running');
 function releaseCapture(){if(capture?.imageData?.imageData){capture.imageData.imageData.dispose();capture.imageData=null;}}
 const resultDownloads=new Map();
 const voice=new VoiceController({context:()=>selectedJobId,onState:data=>promptEditor?.voice(data),onText:text=>promptEditor?.insert(text)});
@@ -325,12 +326,12 @@ async function importImage() {
 function renderTasks(){
  const root=$('task-content');
  const current=queue.jobs.find(j=>j.id===selectedJobId);
- const signature=JSON.stringify([selectedJobId,historyOpen,clearHistoryArmed,historyOpen?queue.jobs.map(j=>[j.id,j.title,j.state]):null,current&&[!!sourceImage,current.state,current.error,current.tasks.map(t=>[t.id,t.state,t.error,t.progress,t.results])]]);
+ const signature=JSON.stringify([selectedJobId,historyOpen,clearHistoryArmed,historyOpen?queue.jobs.map(j=>[j.id,j.title,j.state,protectedHistory(j)]):null,current&&[!!sourceImage,current.state,current.error,current.tasks.map(t=>[t.id,t.state,t.error,t.progress,t.results])]]);
  if(signature===resultsSignature)return;resultsSignature=signature;root.innerHTML='';
  if(historyOpen){
   const list=document.createElement('div');list.className='task-history';
-  queue.jobs.forEach(record=>{const item=document.createElement('div');const open=createUiButton(document);open.textContent=record.title+' · '+stateLabel(record);open.onclick=()=>withBusy(()=>openHistory(record.id));const remove=createUiButton(document);remove.textContent='删除';remove.title='删除 '+record.title;remove.onclick=()=>withBusy(()=>deleteHistoryRecord(record.id));item.appendChild(open);item.appendChild(remove);list.appendChild(item);});
-  if(queue.jobs.length){const clear=createUiButton(document);clear.className='ui-button clear-history'+(clearHistoryArmed?' armed':'');clear.textContent=clearHistoryArmed?'确认清空全部记录':'清空历史记录';clear.onclick=onClearHistoryClick;list.appendChild(clear);}
+  queue.jobs.forEach(record=>{const item=document.createElement('div');const open=createUiButton(document);open.textContent=record.title+' · '+stateLabel(record);open.onclick=()=>withBusy(()=>openHistory(record.id));const remove=createUiButton(document);remove.textContent='删除';remove.title=protectedHistory(record)?'任务仍在运行或待确认，请先核对平台结果':'删除 '+record.title;setButtonDisabled(remove,protectedHistory(record));remove.onclick=()=>withBusy(()=>deleteHistoryRecord(record.id));item.appendChild(open);item.appendChild(remove);list.appendChild(item);});
+  if(queue.jobs.length){const clear=createUiButton(document);clear.className='ui-button clear-history'+(clearHistoryArmed?' armed':'');clear.textContent=clearHistoryArmed?'确认清空全部记录':'清空历史记录';clear.onclick=onClearHistoryClick;const blocked=queue.jobs.some(protectedHistory);setButtonDisabled(clear,blocked);if(blocked)clear.title='仍有运行中或待确认任务，暂不能清空历史';list.appendChild(clear);}
   if(!queue.jobs.length){const empty=document.createElement('p');empty.className='task-message';empty.textContent='暂无历史记录。';list.appendChild(empty);}
   root.appendChild(list);
  }
@@ -378,10 +379,12 @@ async function deleteCaptureFiles(records,includeSharedSelection=false){
  const folder=await fs.getDataFolder();for(const ref of refs)for(const ext of ['.json','.bin'])try{await(await folder.getEntry(ref+ext)).delete();}catch(_){}
 }
 function onClearHistoryClick(){
+ if(queue.jobs.some(protectedHistory)){clearHistoryArmed=false;tasksUI();status('仍有运行中或待确认任务，不能清空历史。请等待完成，并先核对待确认任务。',true);return;}
  if(!clearHistoryArmed){clearHistoryArmed=true;tasksUI();status('再次点击“确认清空全部记录”，将删除本机历史并从 1 重新编号。');return;}
  return withBusy(clearHistory);
 }
 async function clearHistory(){
+ if(queue.jobs.some(protectedHistory)){clearHistoryArmed=false;tasksUI();status('仍有运行中或待确认任务，不能清空历史。请等待完成，并先核对待确认任务。',true);return;}
  const records=queue.jobs.slice();queue.jobs=[];lastSnapshot=null;selectedJobId=null;historyOpen=false;clearHistoryArmed=false;
  queue.save();localStorage.removeItem('lk888-job');localStorage.removeItem('lk888-last-result');localStorage.removeItem('lk888-prompt');job=null;
  await deleteCaptureFiles(records,true);voice.cancel();capture=null;sourceImage=null;references=[];$('prompt').value='';
@@ -389,6 +392,7 @@ async function clearHistory(){
 }
 async function deleteHistoryRecord(id){
  const record=queue.jobs.find(j=>j.id===id);if(!record)return;
+ if(protectedHistory(record)){status('该任务仍在运行或待确认，不能删除。请等待完成，并先在平台核对待确认任务。',true);return;}
  const wasSelected=selectedJobId===id;
  queue.jobs=queue.jobs.filter(j=>j.id!==id);
  if(lastSnapshot?.id===record.captureRef)lastSnapshot=null;

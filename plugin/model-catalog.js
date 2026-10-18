@@ -103,7 +103,8 @@ function buildModelParams(model,{quality,ratio,includeRatio=true,imageCount=1,ex
  const out={...extra},p=model.parameters,{qualityField,ratioField}=sizingFields(model);
  if(qualityField&&(qualityField!=='size'||p[qualityField].length)){
   const values=p[qualityField],pixels=values.filter(v=>/^\d+x\d+$/.test(v));
-  if(pixels.length){
+  if(pixels.length&&!includeRatio&&values.includes('auto'))out[qualityField]='auto';
+  else if(pixels.length){
    const target=({'1K':1024,'2K':2048,'4K':4096})[quality]||1024,r=parseAspectRatio(ratio)?.value||1;
    const preset=['tt-image-2','tt-image-2-token'].includes(model.id)?platformProfile({id:'tt-image-2',hasSchema:false}):null;
    const fixed=preset?.sizes?.[quality]?.[ratio];if(fixed&&!values.includes(fixed))throw new Error('当前清晰度与比例的尺寸选项不可用，请更换规格。');

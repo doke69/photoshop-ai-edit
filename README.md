@@ -149,7 +149,7 @@ python3 scripts/package.py
 python3 scripts/package.py --installers
 ```
 
-插件通过 140 项自动测试，接口使用模拟响应，未调用付费生图。自动测试不代表所有 Photoshop 版本与系统的实机兼容性均已验证。运行打包或预览脚本可重新生成 dist 文件。
+插件通过 146 项自动测试，接口使用模拟响应，未调用付费生图。自动测试不代表所有 Photoshop 版本与系统的实机兼容性均已验证。运行打包或预览脚本可重新生成 dist 文件。
 
 </details>
 
